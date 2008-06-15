@@ -10,16 +10,11 @@ Usage
 */
 class xml2Array {
    
-	private var $arrOutput = array();
-	private var $resParser;
-	private var $strXmlData;
+	private $arrOutput = array();
+	private $resParser;
+	private $strXmlData;
 
-	public function xml2Array($strInputXML) {
-		$this->__construct($strInputXML);
-		register_shutdown_function(array(&$this, '__destruct'));
-	}
-	
-	private function __construct($strInputXML) {
+	public function xmlParse($strInputXML) {
 		$this->resParser = xml_parser_create ();
 		xml_set_object($this->resParser,$this);
 		xml_set_element_handler($this->resParser, "tagOpen", "tagClosed");
@@ -38,11 +33,6 @@ class xml2Array {
 		return $this->arrOutput[0];
 	}
 
-	private function __destruct() {
-		//nothing to do here
-		return true;
-	}    
-    
 	private function tagOpen($parser, $name, $attrs) {
 		$tag=array("name"=>$name,"attrs"=>$attrs);
 		array_push($this->arrOutput,$tag);
