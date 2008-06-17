@@ -53,7 +53,7 @@ require(PHPSVN_DIR."/xml2Array.php");
  *  @author Cesar D. Rodas <cesar@sixdegrees.com.br>
  *  @license BSD License
  */
-class phpSVNclient {
+class phpsvnclient {
 	/**
 	 *  SVN Repository URL
 	 *
@@ -110,7 +110,7 @@ class phpSVNclient {
 	private $storeDirectoryFiles = array();
 	private $lastDirectoryFiles;
 
-	public function phpSVNclient($url = 'http://phpsvnclient.googlecode.com/svn/', $user = false, $pass = false) {
+	public function phpsvnclient($url = 'http://phpsvnclient.googlecode.com/svn/', $user = false, $pass = false) {
 		$this->__construct($url, $user, $pass);
 		register_shutdown_function(array(&$this, '__destruct'));
 	}
