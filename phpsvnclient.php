@@ -200,15 +200,16 @@ class phpsvnclient {
 				if ($array['type'] == 'directory') {
 					$walk = $this->getDirectoryFiles($array['path'],$version);
 					array_shift($walk);
-					$walk = array_reverse($walk);
+					//$walk = array_reverse($walk);
 
 					foreach($walk as $step) {
 						array_unshift($arrOutput, $step);
 					}
 				}
 			}
+			return $this->storeDirectoryTree;
 		}
-		return $this->storeDirectoryTree;
+		return false;		
 	}
 
 	/**
