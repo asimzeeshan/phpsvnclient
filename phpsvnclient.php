@@ -183,6 +183,35 @@ class phpsvnclient {
 	}
 
 	/**
+	 *  getDirectoryTree
+	 *
+	 *  This method returns the complete tree of files and directories
+	 *  in $folder from the version $version of the repository.
+	 *
+	 *  @param string  $folder Folder to get tree
+	 *  @param integer $version Repository version, -1 means actual
+	 *  @return array List of files and directories.
+	 */
+	public function getDirectoryTree($folder='/',$version=-1) {
+		if ($arrOutput = $this->getDirectoryFiles($folder,$version)) {
+			while(count($arrOutput)) {
+				$array = array_shift($arrOutput);
+				array_push($this->storeDirectoryTree, $array);
+				if ($array['type'] == 'directory') {
+					$walk = $this->getDirectoryFiles($array['path'],$version);
+					array_shift($walk);
+					$walk = array_reverse($walk);
+
+					foreach($walk as $step) {
+						array_unshift($arrOutput, $step);
+					}
+				}
+			}
+		}
+		return $this->storeDirectoryTree;
+	}
+
+	/**
 	 *  Returns file contents
 	 *
 	 *  @param string  $file File pathname
