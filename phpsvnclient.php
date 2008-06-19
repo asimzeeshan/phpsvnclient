@@ -273,55 +273,34 @@ class phpsvnclient {
 		if ( ! $this->Request($args, $headers, $body) )
 			return false;
 
-		$parser=new xml_parser_class;
-		$parser->Parse( $body,true);
+		$xml2Array = new xml2Array();
+		$arrOutput = $xml2Array->xmlParse($body);
+		array_shift($arrOutput['children']);
 
-		$fileinfo =  array(
-			SVN_LOGS_VERSION=>"version",
-			SVN_LOGS_AUTHOR => "author",
-			SVN_LOGS_DATE => "date",
-			SVN_LOGS_MODIFIED_FILES => "files",
-			SVN_LOGS_ADDED_FILES => "files",
-			SVN_LOGS_RENAMED_FILES => "files",
-			SVN_LOGS_DELETED_FILES => "files",
-			SVN_LOGS_COMMENT => "comment"
-			);
+		foreach($arrOutput['children'] as $value) {
+			$array=array();
+			foreach($value['children'] as $entry) {
+				if ($entry['name'] == 'D:VERSION-NAME') $array['version'] = $entry['tagData'];
+				if ($entry['name'] == 'D:CREATOR-DISPLAYNAME') $array['author'] = $entry['tagData'];
+				if ($entry['name'] == 'S:DATE') $array['date'] = $entry['tagData'];
+				if ($entry['name'] == 'D:COMMENT') $array['comment'] = $entry['tagData'];
 
-		$start = false;
-		$last = "";
-		$tmp = array();
-		foreach($parser->structure as $key=>$value) {
-			if ( is_array($value) and $value["Tag"] == SVN_LOGS_BEGINGS) {
-				if (count($tmp) > 0) {
-					$logs[] = $tmp;
+				if (	($entry['name'] == 'S:ADDED-PATH') ||
+					($entry['name'] == 'S:MODIFIED-PATH') ||
+					($entry['name'] == 'S:DELETED-PATH')) {
+						// For backward compatability
+						$array['files'][] = $entry['tagData'];
+
+						if ($entry['name'] == 'S:ADDED-PATH') $array['add_files'][] = $entry['tagData'];
+						if ($entry['name'] == 'S:MODIFIED-PATH') $array['mod_files'][] = $entry['tagData'];
+						if ($entry['name'] == 'S:DELETED-PATH') $array['del_files'][] = $entry['tagData'];
 				}
-				$start=true;
-				$last = "";
-				$tmp = array();
-				continue;
 			}
-			if (!$start) continue;
-			if ( $last != "") {
-				// store details of all files into an array. If there is only one file, store as a string
-				if ($tmp[$fileinfo[$last]] && !is_array($tmp[$fileinfo[$last]])){
-					$tmp[$fileinfo[$last]] = array($tmp[$fileinfo[$last]]);
-				}
-
-				if (is_array($tmp[$fileinfo[$last]]))
-					$tmp[$fileinfo[$last]][] = $value;
-				else
-					$tmp[$fileinfo[$last]] = $value;
-				$last = "";
-				continue;
-			}
-			if ( is_array($value) && isset($value["Tag"]) && isset( $fileinfo[$value["Tag"]] ) ) {
-				$last = $value["Tag"];
-			}
+			array_push($this->storeFileLogs,$array);
 		}
-		// add the last element to the array
-		$logs[] = $tmp;
-		return $logs;
+		return($this->storeFileLogs);
 	}
+
 
 	/**
 	 *  Get the repository version
