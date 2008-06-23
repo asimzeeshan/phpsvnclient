@@ -14,6 +14,13 @@
 *        setRespository method                                            *
 *      - various bugfixes (out by one error on getFileLogs)               *
 *                                                                         *
+*   Modified by Ethan Smith (ethan@3thirty.net), June 23 2008             *
+*      - Removed references to storeFileLogs as a member variable - it's  *
+*        now a local variable within getFileLogs() called $fileLogs       * 
+*      - getFile() now checks if you are requesting a directory, and      *
+*         will return false if you are.                                   *
+*      - Added a new parameter to run getDirectoryTree non- recursively   *
+*                                                                         *
 *   Permission is hereby granted, free of charge, to any person obtaining *
 *   a copy of this software and associated documentation files (the       *
 *   "Software"), to deal in the Software without restriction, including   *
@@ -164,7 +171,7 @@ class phpsvnclient {
 	 *
 	 *  @param string  $folder Folder to get files
 	 *  @param integer $version Repository version, -1 means actual
-	 *  @return array List of files.	 */
+	 *  @return array List of files.	 */
 	public function getDirectoryFiles($folder='/',$version=-1) {
 		if ($arrOutput = $this->rawDirectoryDump($folder,$version)) {
 			//echo '<pre>';
@@ -186,17 +193,27 @@ class phpsvnclient {
 	 *  getDirectoryTree
 	 *
 	 *  This method returns the complete tree of files and directories
-	 *  in $folder from the version $version of the repository.
+	 *  in $folder from the version $version of the repository. Can also be used
+	 *  to get the info for a single file or directory
 	 *
 	 *  @param string  $folder Folder to get tree
 	 *  @param integer $version Repository version, -1 means actual
+	 *  @param boolean $recursive Whether to get the tree recursively, or just
+	 *  the specified directory/file.
+	 *
 	 *  @return array List of files and directories.
 	 */
-	public function getDirectoryTree($folder='/',$version=-1) {
+	public function getDirectoryTree($folder='/',$version=-1, $recursive=true) {
+		$directoryTree = array();
+
 		if ($arrOutput = $this->getDirectoryFiles($folder,$version)) {
-			while(count($arrOutput)) {
+			// bail out now if we're not recursing through the files. ES 23/06/08
+			if (!$recursive)
+				return $arrOutput[0];
+
+			while(count($arrOutput) && is_array($arrOutput)) {
 				$array = array_shift($arrOutput);
-				array_push($this->storeDirectoryTree, $array);
+				array_push($directoryTree, $array);
 				if ($array['type'] == 'directory') {
 					$walk = $this->getDirectoryFiles($array['path'],$version);
 					array_shift($walk);
@@ -207,7 +224,7 @@ class phpsvnclient {
 					}
 				}
 			}
-			return $this->storeDirectoryTree;
+			return $directoryTree;
 		}
 		return false;		
 	}
@@ -215,22 +232,33 @@ class phpsvnclient {
 	/**
 	 *  Returns file contents
 	 *
-	 *  @param string  $file File pathname
-	 *  @param integer $version File Version
-	 *  @return Array File content and information
+	 *  @param	string 	$file File pathname
+	 *  @param	integer	$version File Version
+	 *  @return	string	File content and information, false on error, or if a
+	 *  				directory is requested
 	 */
 	public function getFile($file,$version=-1) {
 		$actVersion = $this->getVersion();
 		if ( $version == -1 ||  $version > $actVersion) {
 			$version = $actVersion;
 		}
+
+		// check if this is a directory... if so, return false, otherwise we
+		// get the HTML output of the directory listing from the SVN server. 
+		// This is maybe a bit heavy since it makes another connection to the
+		// SVN server. Maybe add this as an option/parameter? ES 23/06/08
+		$fileInfo = $this->getDirectoryTree($file, $version, false);
+		if ($fileInfo["type"] == "directory")
+			return false;
+
 		$url = $this->cleanURL($this->_url."/!svn/bc/".$version."/".$file."/");
 		$this->initQuery($args,"GET",$url);
 		if ( ! $this->Request($args, $headers, $body) )
 			return false;
+
 		return $body;
 	}
-    
+
 	/**
 	 *  Get changes logs of a file.
 	 *
@@ -257,6 +285,8 @@ class phpsvnclient {
 	 *  @return Array Respository Logs
 	 */
 	public function getFileLogs($file, $vini=0,$vend=-1) {
+		$fileLogs = array();
+
 		$actVersion = $this->getVersion();
 		if ( $vend == -1 || $vend > $actVersion)
 			$vend = $actVersion;
@@ -285,7 +315,7 @@ class phpsvnclient {
 				if ($entry['name'] == 'S:DATE') $array['date'] = $entry['tagData'];
 				if ($entry['name'] == 'D:COMMENT') $array['comment'] = $entry['tagData'];
 
-				if (	($entry['name'] == 'S:ADDED-PATH') ||
+				if (($entry['name'] == 'S:ADDED-PATH') ||
 					($entry['name'] == 'S:MODIFIED-PATH') ||
 					($entry['name'] == 'S:DELETED-PATH')) {
 						// For backward compatability
@@ -296,9 +326,10 @@ class phpsvnclient {
 						if ($entry['name'] == 'S:DELETED-PATH') $array['del_files'][] = $entry['tagData'];
 				}
 			}
-			array_push($this->storeFileLogs,$array);
+			array_push($fileLogs,$array);
 		}
-		return($this->storeFileLogs);
+
+		return $fileLogs;
 	}
 
 
@@ -311,7 +342,7 @@ class phpsvnclient {
 	public function getVersion() {
 		if ( $this->_repVersion > 0) return $this->_repVersion;
 
-		$this->_repVersion = -1;		$this->initQuery($args,"PROPFIND",$this->cleanURL($this->_url."/!svn/vcc/default") );
+		$this->_repVersion = -1;		$this->initQuery($args,"PROPFIND",$this->cleanURL($this->_url."/!svn/vcc/default") );
 		$args['Body'] = PHPSVN_VERSION_REQUEST;
 		$args['Headers']['Content-Length'] = strlen(PHPSVN_NORMAL_REQUEST);
 		$args['Headers']['Depth']=0;
@@ -359,13 +390,13 @@ class phpsvnclient {
 	public function setRepository($url) {
 		$this->_url = $url;
 	}
-	/**
+	/**
 	 *  Old method; there's a typo in the name. This is now a wrapper for setRepository
 	 */
 	public function setRespository($url) {
 		return $this->setRepository($url);
 	}
-	/**
+	/**
 	 *  Add Authentication  settings
 	 *
 	 *  @param string $user Username
