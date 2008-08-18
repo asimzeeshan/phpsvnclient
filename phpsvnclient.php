@@ -21,6 +21,17 @@
 *         will return false if you are.                                   *
 *      - Added a new parameter to run getDirectoryTree non- recursively   *
 *                                                                         *
+*   Modified by Per Soderlind (per@soderlind.no), August 13 2008          *
+*      - Added support for LP2:BASELINE-RELATIVE-PATH in                  *
+*        storeDirectoryFiles()                                            *
+*      - In storeDirectoryFiles(), changed if{} elseif {} to switch {}    *
+*        since it's faster :)                                             *
+*                                                                         *
+*   Modified by Dmitrii Shevchenko (dmitrii.shevchenko@gmail.com),        * 
+*                                                 August 17 2008          *
+*      - minor change to getDirectoryTree() function                      *
+*      - added checkOut() function                                        *
+*                                                                         *
 *   Permission is hereby granted, free of charge, to any person obtaining *
 *   a copy of this software and associated documentation files (the       *
 *   "Software"), to deal in the Software without restriction, including   *
@@ -137,6 +148,31 @@ class phpsvnclient {
  */
 
 	/**
+	 *  checkOut
+	 */
+	public function checkOut($folder = '/', $outPath = '.') {
+		while($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1)
+			$outPath = substr($outPath, 0, -1);
+		
+		$tree = $this->getDirectoryTree($folder);
+		foreach($tree as $file) {
+			$path = $file['path'];
+			$tmp = strstr(trim($path, '/'), trim($folder, '/'));
+			$createPath = $outPath.'/'.($tmp ? substr($tmp, strlen(trim($folder, '/'))) : "");
+			if(trim($path, '/') == trim($folder, '/'))
+				continue;
+			if($file['type'] == 'directory' && !is_dir($createPath))
+				mkdir($createPath);
+			elseif($file['type'] == 'file') {
+				$contents = $this->getFile($path);
+				$hOut = fopen($createPath, 'w');
+				fwrite($hOut, $contents);
+				fclose($hOut);
+			}
+		}
+	}
+
+	/**
 	 *  rawDirectoryDump
 	 *
 	 *  This method dumps SVN data for $folder
@@ -172,16 +208,17 @@ class phpsvnclient {
 	 *  @param string  $folder Folder to get files
 	 *  @param integer $version Repository version, -1 means actual
 	 *  @return array List of files.	 */
-	public function getDirectoryFiles($folder='/',$version=-1) {
-		if ($arrOutput = $this->rawDirectoryDump($folder,$version)) {
-			//echo '<pre>';
-			//print_r($arrOutput);
-			//echo '</pre>';
+	public function getDirectoryFiles($folder='/', $version=-1) {
+		if ($arrOutput = $this->rawDirectoryDump($folder, $version)) {
+			/*echo '<pre>';
+			print_r($arrOutput);
+			echo '</pre>';
+			*/
 			$files = array();
 			foreach($arrOutput['children'] as $key=>$value) {
 				//echo $key . ' => ' . $value . '</br>';
 				array_walk_recursive($value, array($this, 'storeDirectoryFiles'));
-				array_push($files,$this->storeDirectoryFiles);
+				array_push($files, $this->storeDirectoryFiles);
 				unset($this->storeDirectoryFiles);
 			}
 			return $files;
@@ -206,27 +243,31 @@ class phpsvnclient {
 	public function getDirectoryTree($folder='/',$version=-1, $recursive=true) {
 		$directoryTree = array();
 
-		if ($arrOutput = $this->getDirectoryFiles($folder,$version)) {
-			// bail out now if we're not recursing through the files. ES 23/06/08
-			if (!$recursive)
-				return $arrOutput[0];
+		if (!($arrOutput = $this->getDirectoryFiles($folder, $version)))
+			return false;
+			
+		if (!$recursive)
+			return $arrOutput[0];
+		
+		while(count($arrOutput) && is_array($arrOutput)) {
+			$array = array_shift($arrOutput);
+			
+			array_push($directoryTree, $array);
+			
+			if(trim($array['path'], '/') == trim($folder, '/'))
+				continue;
+			
+			if ($array['type'] == 'directory') {
+				$walk = $this->getDirectoryFiles($array['path'], $version);
+				array_shift($walk);
+				//$walk = array_reverse($walk);
 
-			while(count($arrOutput) && is_array($arrOutput)) {
-				$array = array_shift($arrOutput);
-				array_push($directoryTree, $array);
-				if ($array['type'] == 'directory') {
-					$walk = $this->getDirectoryFiles($array['path'],$version);
-					array_shift($walk);
-					//$walk = array_reverse($walk);
-
-					foreach($walk as $step) {
-						array_unshift($arrOutput, $step);
-					}
+				foreach($walk as $step) {
+					array_unshift($arrOutput, $step);
 				}
 			}
-			return $directoryTree;
 		}
-		return false;		
+		return $directoryTree;
 	}
 
 	/**
@@ -419,6 +460,7 @@ class phpsvnclient {
 		if ($key == 'name') {
 			if (	($item == 'D:HREF') || 
 				($item == 'LP1:GETLASTMODIFIED') ||
+				($item == 'LP2:BASELINE-RELATIVE-PATH') ||
 				($item == 'LP3:BASELINE-RELATIVE-PATH') ||
 				($item == 'D:STATUS') ) {
 				$this->lastDirectoryFiles = $item;
@@ -428,12 +470,22 @@ class phpsvnclient {
 			// Unsure if the 1st of two D:HREF's always returns the result we want, but for now...
 			if (($this->lastDirectoryFiles == 'D:HREF') && (isset($this->storeDirectoryFiles['type']))) return;
 
-			// Dump into the array
-			if ($this->lastDirectoryFiles == 'D:HREF') { $var = 'type'; }
-			elseif ($this->lastDirectoryFiles == 'LP1:GETLASTMODIFIED') { $var = 'last-mod'; }
-			elseif ($this->lastDirectoryFiles == 'LP3:BASELINE-RELATIVE-PATH') { $var = 'path'; }
-			elseif ($this->lastDirectoryFiles == 'D:STATUS') { $var = 'status'; }
-
+			// Dump into the array 
+			switch ($this->lastDirectoryFiles) {
+				case 'D:HREF':
+					$var = 'type';
+					break;
+				case 'LP1:GETLASTMODIFIED':
+					$var = 'last-mod';
+					break;
+				case 'LP2:BASELINE-RELATIVE-PATH':
+				case 'LP3:BASELINE-RELATIVE-PATH':
+					$var = 'path';
+					break;
+				case 'D:STATUS':
+					$var = 'status';
+					break;
+			}
 			$this->storeDirectoryFiles[$var] = $item;
 			$this->lastDirectoryFiles = '';
 
@@ -444,7 +496,7 @@ class phpsvnclient {
 				(isset($this->storeDirectoryFiles['status'])) ) {
 
 				$len = strlen($this->storeDirectoryFiles['path']);
-				if ( substr($this->storeDirectoryFiles['type'],strlen($this->storeDirectoryFiles['type'])-$len) == $this->storeDirectoryFiles['path'] ) {
+				if ( substr($this->storeDirectoryFiles['type'],strlen($this->storeDirectoryFiles['type']) - $len) == $this->storeDirectoryFiles['path'] ) {
 					$this->storeDirectoryFiles['type'] = 'file';
 				} else {
 					$this->storeDirectoryFiles['type'] = 'directory';
