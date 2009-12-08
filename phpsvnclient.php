@@ -32,6 +32,11 @@
 *      - minor change to getDirectoryTree() function                      *
 *      - added checkOut() function                                        *
 *                                                                         *
+*   Modified by Rasmus Berg Palm (rasmusbergpalm@gmail.com),              *
+*                                                 28 October 2009         *
+*       - Fixed 404 error in request() when RequestURI had whitespaces    *  
+*                                                                         *
+*                                                                         *
 *   Permission is hereby granted, free of charge, to any person obtaining *
 *   a copy of this software and associated documentation files (the       *
 *   "Software"), to deal in the Software without restriction, including   *
@@ -494,7 +499,7 @@ class phpsvnclient {
 				(isset($this->storeDirectoryFiles['last-mod'])) &&
 				(isset($this->storeDirectoryFiles['path'])) &&
 				(isset($this->storeDirectoryFiles['status'])) ) {
-
+				$this->storeDirectoryFiles['path'] = str_replace(' ', '%20', $this->storeDirectoryFiles['path']); //Hack to make filenames with spaces work.
 				$len = strlen($this->storeDirectoryFiles['path']);
 				if ( substr($this->storeDirectoryFiles['type'],strlen($this->storeDirectoryFiles['type']) - $len) == $this->storeDirectoryFiles['path'] ) {
 					$this->storeDirectoryFiles['type'] = 'file';
@@ -538,6 +543,7 @@ class phpsvnclient {
 	 *  @access private
 	 */
 	private function Request($args, &$headers, &$body) {
+		$args['RequestURI'] = str_replace(' ', '%20', $args['RequestURI']); //Hack to make filenames with spaces work.
 		$http = & $this->_http;
 		$http->Open($args);
 		$http->SendRequest($args);
