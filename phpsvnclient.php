@@ -57,12 +57,12 @@
 *   OTHER DEALINGS IN THE SOFTWARE.                                       *
 ***************************************************************************
 */
-define("PHPSVN_DIR",dirname(__FILE__) );
+define("PHPSVN_DIR", dirname(__FILE__));
 
-require(PHPSVN_DIR."/http.php");
-require(PHPSVN_DIR."/xml_parser.php"); // to be dropped?
-require(PHPSVN_DIR."/definitions.php");
-require(PHPSVN_DIR."/xml2Array.php");
+require(PHPSVN_DIR . "/http.php");
+require(PHPSVN_DIR . "/xml_parser.php"); // to be dropped?
+require(PHPSVN_DIR . "/definitions.php");
+require(PHPSVN_DIR . "/xml2Array.php");
 
 
 /**
@@ -158,17 +158,19 @@ class phpsvnclient {
 	public function checkOut($folder = '/', $outPath = '.') {
 		while($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1)
 			$outPath = substr($outPath, 0, -1);
-		
 		$tree = $this->getDirectoryTree($folder);
+		if(!file_exists($outPath)){
+			mkdir($outPath, 0777, TRUE);
+		}
 		foreach($tree as $file) {
 			$path = $file['path'];
 			$tmp = strstr(trim($path, '/'), trim($folder, '/'));
-			$createPath = $outPath.'/'.($tmp ? substr($tmp, strlen(trim($folder, '/'))) : "");
+			$createPath = $outPath . '/' . ($tmp ? substr($tmp, strlen(trim($folder, '/'))) : "");
 			if(trim($path, '/') == trim($folder, '/'))
 				continue;
-			if($file['type'] == 'directory' && !is_dir($createPath))
+			if($file['type'] == 'directory' && !is_dir($createPath)){
 				mkdir($createPath);
-			elseif($file['type'] == 'file') {
+			}elseif($file['type'] == 'file') {
 				$contents = $this->getFile($path);
 				$hOut = fopen($createPath, 'w');
 				fwrite($hOut, $contents);
@@ -192,8 +194,8 @@ class phpsvnclient {
 		if ( $version == -1 ||  $version > $actVersion) {
 			$version = $actVersion;
 		}
-		$url = $this->cleanURL($this->_url."/!svn/bc/".$version."/".$folder."/");
-		$this->initQuery($args,"PROPFIND",$url);
+		$url = $this->cleanURL($this->_url . "/!svn/bc/" . $version . "/" . $folder . "/");
+		$this->initQuery($args, "PROPFIND", $url);
 		$args['Body'] = PHPSVN_NORMAL_REQUEST;
 		$args['Headers']['Content-Length'] = strlen(PHPSVN_NORMAL_REQUEST);
 
