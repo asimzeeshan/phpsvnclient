@@ -416,6 +416,9 @@ class phpsvnclient {
 				if (is_numeric($t[$index])) {
 					$this->_repVersion = $t[$index];
 					break;
+				}else{
+					$enable = false;
+					continue;
 				}
 			}
 			if ( is_array($value) && $value['Tag'] == 'D:href') $enable = true;
