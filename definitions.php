@@ -61,4 +61,6 @@ define("NOT_FOUND", 2);
 define("AUTH_REQUIRED", 3);
 define("UNKNOWN_ERROR",4);
 define("NO_ERROR",1)
+
+//test definitions
 ?>
