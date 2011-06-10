@@ -429,7 +429,7 @@ class phpsvnclient {
 	return $fileLogs;
     }
 
-    public function getFileLogs1($file, $vini=0, $vend=-1) {
+    public function getLogsForUpdate($file, $vini=0, $vend=-1) {
 	$fileLogs = array();
 
 	if ($vend == -1 || $vend > $this->actVersion)
@@ -490,13 +490,33 @@ class phpsvnclient {
 	}
 	$array['filesForDelete1'] = array_diff($array['filesForDelete'], $array['files']);
 	$array['files1'] = array_diff($array['files'], $array['filesForDelete']);
-	unset($array['files']);
-	unset($array['filesForDelete']);
-	unset($array['dirsForDelete']);
-	unset($array['dirs']);
+	foreach ($array['files1'] as $keyY1=>$valueE1) {
+	    for ($x = 0; $x < count($array['dirsForDelete']); $x++) {
+		//echo "+++" . $array['files1'][$z] . "---" . $array['dirsForDelete'][$x] . "+++" . "\r\n";
+		if (strpos($valueE1, $array['dirsForDelete'][$x]."/") !== false) {
+//		    echo "!!!!!!!!!!!!!!!!!!";
+		    unset($array['files1'][$keyY1]);
+//		    echo $array['files1'][$keyY1] . "---" . $array['dirsForDelete'][$x] . "\r\n";
+		}
+	    }
+	}
 
-	echo "\r\n";
-	print_r($array);
+//	unset($array['files']);
+//	unset($array['filesForDelete']);
+//	unset($array['dirsForDelete']);
+//	unset($array['dirs']);
+	if (count($array['dirsForDelete1']) < 1) {
+	    unset($array['dirsForDelete1']);
+	}
+	if (count($array['dirs1']) < 1) {
+	    unset($array['dirs1']);
+	}
+	if (count($array['filesForDelete1']) < 1) {
+	    unset($array['filesForDelete1']);
+	}
+	if (count($array['files1']) < 1) {
+	    unset($array['files1']);
+	}
 	return $array;
     }
 
