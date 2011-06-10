@@ -451,72 +451,103 @@ class phpsvnclient {
 
 	$xml2Array = new xml2Array();
 	$arrOutput = $xml2Array->xmlParse($body);
-	print_r($arrOutput);
+	//print_r($arrOutput);
 
 	$array = array();
 	foreach ($arrOutput['children'] as $value) {
 	    foreach ($value['children'] as $entry) {
 
 		if (($entry['name'] == 'S:ADDED-PATH') ||
-			($entry['name'] == 'S:MODIFIED-PATH')) {
+			($entry['name'] == 'S:MODIFIED-PATH') ||
+			($entry['name'] == 'S:DELETED-PATH')) {
 		    // For backward compatability
 		    if ($entry['attrs']['NODE-KIND'] == "file") {
-			if (!@in_array($entry['tagData'], $array['files'])) {
-			    $array['files'][] = $entry['tagData'];
-			}
+//			if (!@in_array($entry['tagData'], $array['files'])) {
+			$array['objects'][] = array('object_name' => $entry['tagData'], 'action' => $entry['name'], 'type' => 'file');
+//			}
 		    } else if ($entry['attrs']['NODE-KIND'] == "dir") {
-			if (!@in_array($entry['tagData'], $array['dirs'])) {
-			    $array['dirs'][] = $entry['tagData'];
-			}
-		    }
-		}
-
-		if ($entry['name'] == 'S:DELETED-PATH') {
-		    if ($entry['attrs']['NODE-KIND'] == "file") {
-			if (!@in_array($entry['tagData'], $array['filesForDelete'])) {
-			    $array['filesForDelete'][] = $entry['tagData'];
-			}
-		    } else if ($entry['attrs']['NODE-KIND'] == "dir") {
-			if (!@in_array($entry['tagData'], $array['dirsForDelete'])) {
-			    $array['dirsForDelete'][] = $entry['tagData'];
-			}
+//			if (!@in_array($entry['tagData'], $array['dirs'])) {
+			$array['objects'][] = array('object_name' => $entry['tagData'], 'action' => $entry['name'], 'type' => 'dir');
+//			}
 		    }
 		}
 	    }
 	}
-	if (count($array['dirsForDelete']) > 0 && count($array['dirs']) > 0) {
-	    $array['dirsForDelete1'] = array_diff($array['dirsForDelete'], $array['dirs']);
-	    $array['dirs1'] = array_diff($array['dirs'], $array['dirsForDelete']);
-	}
-	$array['filesForDelete1'] = array_diff($array['filesForDelete'], $array['files']);
-	$array['files1'] = array_diff($array['files'], $array['filesForDelete']);
-	foreach ($array['files1'] as $keyY1=>$valueE1) {
-	    for ($x = 0; $x < count($array['dirsForDelete']); $x++) {
-		//echo "+++" . $array['files1'][$z] . "---" . $array['dirsForDelete'][$x] . "+++" . "\r\n";
-		if (strpos($valueE1, $array['dirsForDelete'][$x]."/") !== false) {
-//		    echo "!!!!!!!!!!!!!!!!!!";
-		    unset($array['files1'][$keyY1]);
-//		    echo $array['files1'][$keyY1] . "---" . $array['dirsForDelete'][$x] . "\r\n";
+	$files = "";
+	$filesDelete = "";
+	$dirs = "";
+	$dirsDelete = "";
+
+	foreach ($array['objects'] as $objects) {
+	    echo "\r\n";
+	    print_r($objects);
+	    echo "************************************************\r\n";
+	    if ($objects['type'] == "file") {
+		if ($objects['action'] == "S:ADDED-PATH" || $objects['action'] == "S:MODIFIED-PATH") {
+		    $file = $objects['object_name'] . "/*+++*/";
+		    $files.=$file;
+		    $filesDelete = str_replace($file, "", $filesDelete, $count);
 		}
+		if ($objects['action'] == "S:DELETED-PATH") {
+		    if (strpos($files, $objects['object_name']) !== false) {
+			$file = $objects['object_name'] . "/*+++*/";
+			$count = 1;
+			$files = str_replace($file, "", $files, $count);
+		    } else {
+			$filesDelete.=$objects['object_name'] . "/*+++*/";
+		    }
+		}
+//		echo 'File: '.$objects['object_name'];
+//		echo "\r\n";
 	    }
 	}
-
+	echo $files . "\r\n";
+	echo $filesDelete . "\r\n";
+	$files = explode("/*+++*/", $files);
+	print_r($files);
+//	if (count($array['dirsForDelete']) > 0 && count($array['dirs']) > 0) {
+//	    $array['dirsForDelete1'] = array_diff($array['dirsForDelete'], $array['dirs']);
+//	    $array['dirs1'] = array_diff($array['dirs'], $array['dirsForDelete']);
+//	}
+//	foreach ($array['filesForDelete'] as $keyY1 => $valueE1) {
+//	    for ($x = 0; $x < count($array['files']); $x++) {
+//		echo "+++" . $valueE1 . "---" . $array['files'][$x] . "+++" . "\r\n";
+//		if ($valueE1 = $array['files'][$x]) {
+//		    unset($array['files'][$x]);
+//		    unset($array['filesForDelete'][$keyY1]);
+//		    echo $valueE1 . "---" . $array['files'][$x] . "\r\n";
+//		    break;
+//		}
+//	    }
+//	}
+//	$array['filesForDelete1'] = array_diff($array['filesForDelete'], $array['files']);
+//	$array['files1'] = array_diff($array['files'], $array['filesForDelete']);
+//	foreach ($array['files1'] as $keyY1 => $valueE1) {
+//	    for ($x = 0; $x < count($array['dirsForDelete']); $x++) {
+//		//echo "+++" . $array['files1'][$z] . "---" . $array['dirsForDelete'][$x] . "+++" . "\r\n";
+//		if (strpos($valueE1, $array['dirsForDelete'][$x] . "/") !== false) {
+////		    echo "!!!!!!!!!!!!!!!!!!";
+//		    unset($array['files1'][$keyY1]);
+////		    echo $array['files1'][$keyY1] . "---" . $array['dirsForDelete'][$x] . "\r\n";
+//		}
+//	    }
+//	}
 //	unset($array['files']);
 //	unset($array['filesForDelete']);
 //	unset($array['dirsForDelete']);
 //	unset($array['dirs']);
-	if (count($array['dirsForDelete1']) < 1) {
-	    unset($array['dirsForDelete1']);
-	}
-	if (count($array['dirs1']) < 1) {
-	    unset($array['dirs1']);
-	}
-	if (count($array['filesForDelete1']) < 1) {
-	    unset($array['filesForDelete1']);
-	}
-	if (count($array['files1']) < 1) {
-	    unset($array['files1']);
-	}
+//	if (count($array['dirsForDelete1']) < 1) {
+//	    unset($array['dirsForDelete1']);
+//	}
+//	if (count($array['dirs1']) < 1) {
+//	    unset($array['dirs1']);
+//	}
+//	if (count($array['filesForDelete1']) < 1) {
+//	    unset($array['filesForDelete1']);
+//	}
+//	if (count($array['files1']) < 1) {
+//	    unset($array['files1']);
+//	}
 	return $array;
     }
 
