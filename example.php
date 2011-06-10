@@ -28,7 +28,7 @@ if (!file_exists("../dev")) {
     $phpsvnclient->createOrUpdateWorkingCopy('branches/khartn', '../dev');
 } else {
 //    $a = $phpsvnclient->getRepositoryLogs('branches/khartn');
-    $a = $phpsvnclient->getLogsForUpdate('tests', 75);
+    $a = $phpsvnclient->getLogsForUpdate('tests', 70);
 //    print_r($a);
 //    echo "\r\n";
     //print_r($a);

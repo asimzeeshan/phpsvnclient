@@ -497,12 +497,44 @@ class phpsvnclient {
 			$filesDelete.=$objects['object_name'] . "/*+++*/";
 		    }
 		}
-//		echo 'File: '.$objects['object_name'];
-//		echo "\r\n";
+	    }
+	    if ($objects['type'] == "dir") {
+		if ($objects['action'] == "S:ADDED-PATH" || $objects['action'] == "S:MODIFIED-PATH") {
+		    $dir = $objects['object_name'] . "/*+++*/";
+		    $dirs.=$dir;
+		    $dirsDelete = str_replace($dir, "", $dirsDelete, $count);
+		}
+		if ($objects['action'] == "S:DELETED-PATH") {
+		    // Delete files from filelist
+		    $dir = $objects['object_name'] . "/";
+		    $files1 = explode("/*+++*/", $files);
+		    for ($x = 0; $x < count($files1); $x++) {
+			if (strpos($files1[$x], $dir) !== false) {
+			    echo "!!!\r\n";
+			    echo $files1[$x] . "\r\n";
+			    echo "!!!\r\n";
+			    
+			    unset($files1[$x]);
+			}
+		    }
+		    $files=implode("/*+++*/", $files1);
+
+		    // END OF Delete files from filelist
+
+		    if (strpos($dirs, $objects['object_name']) !== false) {
+			$dir = $objects['object_name'] . "/*+++*/";
+			$count = 1;
+			$dirs = str_replace($dir, "", $dirs, $count);
+		    } else {
+			$dirsDelete.=$objects['object_name'] . "/*+++*/";
+		    }
+		}
 	    }
 	}
 	echo $files . "\r\n";
 	echo $filesDelete . "\r\n";
+	echo $dirs . "\r\n";
+	echo $dirsDelete . "\r\n";
 	$files = explode("/*+++*/", $files);
 	print_r($files);
 //	if (count($array['dirsForDelete']) > 0 && count($array['dirs']) > 0) {
