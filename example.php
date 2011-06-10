@@ -25,10 +25,11 @@ $phpsvnclient = new phpsvnclient($url);
 //delete('../dev');
 //$phpsvnclient->checkOut('branches/TestVersion', '../dev');
 if (!file_exists("../dev")) {
-    $phpsvnclient->checkOut('branches/khartn', '../dev');
+    $phpsvnclient->createOrUpdateWorkingCopy('branches/khartn', '../dev');
 } else {
-    $a = $phpsvnclient->getRepositoryLogs('branches/khartn');
+//    $a = $phpsvnclient->getRepositoryLogs('branches/khartn');
+    $a = $phpsvnclient->getFileLogs1('tests', 72);
     echo "\r\n";
-	print_r($a);
+    //print_r($a);
 }
 ?>
