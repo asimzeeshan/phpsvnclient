@@ -346,11 +346,7 @@ class phpsvnclient {
 		if ( $vini < 0) $vini=0;
 		if ( $vini > $vend) $vini = $vend;
 
-		//$file='/branches/khartn/';
-		$file='';
 		$url = $this->cleanURL($this->_url."/!svn/bc/".$this->actVersion."/".$file."/");
-		$url="http://phpsvnclient.googlecode.com/svn/!svn/bc/67/branches/khartn";
-		echo $url;
 		$this->initQuery($args,"REPORT",$url);
 		$args['Body'] = sprintf(PHPSVN_LOGS_REQUEST,$vini,$vend);
 		$args['Headers']['Content-Length'] = strlen($args['Body']);
@@ -364,7 +360,7 @@ class phpsvnclient {
 
 		$xml2Array = new xml2Array();
 		$arrOutput = $xml2Array->xmlParse($body);
-		array_shift($arrOutput['children']);
+		//array_shift($arrOutput['children']);
 
 		foreach($arrOutput['children'] as $value) {
 			$array=array();
@@ -373,10 +369,9 @@ class phpsvnclient {
 				if ($entry['name'] == 'D:CREATOR-DISPLAYNAME') $array['author'] = $entry['tagData'];
 				if ($entry['name'] == 'S:DATE') $array['date'] = $entry['tagData'];
 				if ($entry['name'] == 'D:COMMENT') $array['comment'] = $entry['tagData'];
-
 				if (($entry['name'] == 'S:ADDED-PATH') ||
 					($entry['name'] == 'S:MODIFIED-PATH') ||
-					($entry['name'] == 'S:DELETED-PATH')) {
+					($entry['name'] == 'S:DELETED-PATH')) {				    
 						// For backward compatability
 						$array['files'][] = $entry['tagData'];
 
