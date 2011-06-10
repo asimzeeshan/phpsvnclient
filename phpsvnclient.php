@@ -132,6 +132,8 @@ class phpsvnclient {
 
 	private $storeDirectoryFiles = array();
 	private $lastDirectoryFiles;
+	
+	public $actVersion;
 
 	public function phpsvnclient($url = 'http://phpsvnclient.googlecode.com/svn/', $user = false, $pass = false) {
 		$this->__construct($url, $user, $pass);
@@ -146,6 +148,10 @@ class phpsvnclient {
 		$this->_url = $url;
 		$this->user = $user;
 		$this->pass = $pass;
+		
+		//$this->getVersion();
+		$this->actVersion = $this->getVersion();
+		//echo "!!!".$this->actVersion ;
 	}
     
 /**
@@ -190,9 +196,9 @@ class phpsvnclient {
 	 *  @return array SVN data dump.
 	 */
 	public function rawDirectoryDump($folder='/',$version=-1) {
-		$actVersion = $this->getVersion();
-		if ( $version == -1 ||  $version > $actVersion) {
-			$version = $actVersion;
+		
+		if ( $version == -1 ||  $version > $this->actVersion) {
+			$version = $this->actVersion;
 		}
 		$url = $this->cleanURL($this->_url . "/!svn/bc/" . $version . "/" . $folder . "/");
 		$this->initQuery($args, "PROPFIND", $url);
@@ -286,9 +292,8 @@ class phpsvnclient {
 	 *  				directory is requested
 	 */
 	public function getFile($file,$version=-1) {
-		$actVersion = $this->getVersion();
-		if ( $version == -1 ||  $version > $actVersion) {
-			$version = $actVersion;
+		if ( $version == -1 ||  $version > $this->actVersion) {
+			$version = $this->actVersion;
 		}
 
 		// check if this is a directory... if so, return false, otherwise we
@@ -317,10 +322,10 @@ class phpsvnclient {
 	 *  @param integer $vend End Version
 	 *  @return Array Respository Logs
 	 */
-	public function getRepositoryLogs($vini=0,$vend=-1) {
-		return $this->getFileLogs("/",$vini,$vend);
+	public function getRepositoryLogs($path="/",$vini=0,$vend=-1) {
+	    return $this->getFileLogs($path,$vini,$vend);
 	}
-
+	
 	/**
 	 *  Get changes logs of a file.
 	 *
@@ -335,18 +340,24 @@ class phpsvnclient {
 	public function getFileLogs($file, $vini=0,$vend=-1) {
 		$fileLogs = array();
 
-		$actVersion = $this->getVersion();
-		if ( $vend == -1 || $vend > $actVersion)
-			$vend = $actVersion;
+		if ( $vend == -1 || $vend > $this->actVersion)
+			$vend = $this->actVersion;
 
 		if ( $vini < 0) $vini=0;
 		if ( $vini > $vend) $vini = $vend;
 
-		$url = $this->cleanURL($this->_url."/!svn/bc/".$actVersion."/".$file."/");
+		//$file='/branches/khartn/';
+		$file='';
+		$url = $this->cleanURL($this->_url."/!svn/bc/".$this->actVersion."/".$file."/");
+		$url="http://phpsvnclient.googlecode.com/svn/!svn/bc/67/branches/khartn";
+		echo $url;
 		$this->initQuery($args,"REPORT",$url);
 		$args['Body'] = sprintf(PHPSVN_LOGS_REQUEST,$vini,$vend);
 		$args['Headers']['Content-Length'] = strlen($args['Body']);
 		$args['Headers']['Depth']=1;
+		
+		echo "\r\n";
+		print_r($args);
 
 		if ( ! $this->Request($args, $headers, $body) )
 			return false;

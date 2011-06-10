@@ -16,13 +16,19 @@ function delete($arg) {
     rmdir($arg);
 }
 
-$url = 'http://myprivatesite.googlecode.com/svn/';
+//$url = 'http://myprivatesite.googlecode.com/svn/';
+$url = 'http://phpsvnclient.googlecode.com/svn/';
 
 require_once("phpsvnclient.php");
 $phpsvnclient = new phpsvnclient($url);
 
-delete('../dev');
-
-print_r($phpsvnclient->getRepositoryLogs());
+//delete('../dev');
 //$phpsvnclient->checkOut('branches/TestVersion', '../dev');
+if (!file_exists("../dev")) {
+    $phpsvnclient->checkOut('branches/khartn', '../dev');
+} else {
+    $a = $phpsvnclient->getRepositoryLogs('branches/khartn');
+    echo "\r\n";
+	print_r($a);
+}
 ?>
