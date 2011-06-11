@@ -156,23 +156,12 @@ class phpsvnclient {
 
     function createDirs($path) {
         $dirs = explode("/", $path);
-        echo "\r\n";
-        echo "************";
-        echo "\r\n";
-        print_r($dirs);
-        echo "\r\n";
-        echo $path;
-        echo "\r\n";
 
         foreach ($dirs as $dir) {
-            echo $dir;
-            echo "\r\n";
-            $createDir = substr($path, 0, strpos($path, $dir) + strlen($dir));
-            echo $createDir;
-            echo "\r\n";
-            echo "-------------------------------";
-            echo "\r\n";
-            @mkdir($createDir);
+            if ($dir != "") {
+                $createDir = substr($path, 0, strpos($path, $dir) + strlen($dir));
+                @mkdir($createDir);
+            }
         }
         echo "\r\n";
         echo "**************";
