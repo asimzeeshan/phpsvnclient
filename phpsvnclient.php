@@ -59,10 +59,10 @@
 */
 define("PHPSVN_DIR", dirname(__FILE__));
 
-require(PHPSVN_DIR . "/http.php");
-require(PHPSVN_DIR . "/xml_parser.php"); // to be dropped?
-require(PHPSVN_DIR . "/definitions.php");
-require(PHPSVN_DIR . "/xml2Array.php");
+require_once PHPSVN_DIR . "/http.php";
+require_once PHPSVN_DIR . "/xml_parser.php"; // to be dropped?
+require_once PHPSVN_DIR . "/definitions.php";
+require_once PHPSVN_DIR . "/xml2Array.php";
 
 
 /**
@@ -153,7 +153,10 @@ class phpsvnclient {
  */
 
 	/**
-	 *  checkOut
+	 * Performs a checkout and creates files and folders.
+	 * 
+	 * @param string $folder Defaults to disk root
+	 * @param string $outPath Defaults to current folder (.)
 	 */
 	public function checkOut($folder = '/', $outPath = '.') {
 		while($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1)
@@ -182,14 +185,13 @@ class phpsvnclient {
 	/**
 	 *  rawDirectoryDump
 	 *
-	 *  This method dumps SVN data for $folder
-	 *  in the version $version of the repository.
+         * Dumps SVN data for $folder in the version $version of the repository.
 	 *
 	 *  @param string  $folder Folder to get data
 	 *  @param integer $version Repository version, -1 means actual
 	 *  @return array SVN data dump.
 	 */
-	public function rawDirectoryDump($folder='/',$version=-1) {
+	public function rawDirectoryDump($folder='/', $version=-1) {
 		$actVersion = $this->getVersion();
 		if ( $version == -1 ||  $version > $actVersion) {
 			$version = $actVersion;
@@ -209,21 +211,16 @@ class phpsvnclient {
 	/**
 	 *  getDirectoryFiles
 	 *
-	 *  This method returns all the files in $folder
-	 *  in the version $version of the repository.
+	 *  Returns all the files in $folder in the version $version of 
+	 *  the repository.
 	 *
 	 *  @param string  $folder Folder to get files
 	 *  @param integer $version Repository version, -1 means actual
 	 *  @return array List of files.	 */
 	public function getDirectoryFiles($folder='/', $version=-1) {
-		if ($arrOutput = $this->rawDirectoryDump($folder, $version)) {
-			/*echo '<pre>';
-			print_r($arrOutput);
-			echo '</pre>';
-			*/
+		if ($arrOutput = $this->rawDirectoryDump($folder, $version)) {			
 			$files = array();
 			foreach($arrOutput['children'] as $key=>$value) {
-				//echo $key . ' => ' . $value . '</br>';
 				array_walk_recursive($value, array($this, 'storeDirectoryFiles'));
 				array_push($files, $this->storeDirectoryFiles);
 				unset($this->storeDirectoryFiles);
@@ -236,12 +233,12 @@ class phpsvnclient {
 	/**
 	 *  getDirectoryTree
 	 *
-	 *  This method returns the complete tree of files and directories
-	 *  in $folder from the version $version of the repository. Can also be used
-	 *  to get the info for a single file or directory
+	 *   Returns the complete tree of files and directories in $folder from the
+	 *  version $version of the repository. Can also be used to get the info 
+	 *  for a single file or directory.
 	 *
 	 *  @param string  $folder Folder to get tree
-	 *  @param integer $version Repository version, -1 means actual
+	 *  @param integer $version Repository version, -1 means current
 	 *  @param boolean $recursive Whether to get the tree recursively, or just
 	 *  the specified directory/file.
 	 *
@@ -257,7 +254,7 @@ class phpsvnclient {
 			return $arrOutput[0];
 		
 		while(count($arrOutput) && is_array($arrOutput)) {
-			$array = array_shift($arrOutput);
+			$array = array_shift($arrOutput);                        
 			
 			array_push($directoryTree, $array);
 			
@@ -267,7 +264,6 @@ class phpsvnclient {
 			if ($array['type'] == 'directory') {
 				$walk = $this->getDirectoryFiles($array['path'], $version);
 				array_shift($walk);
-				//$walk = array_reverse($walk);
 
 				foreach($walk as $step) {
 					array_unshift($arrOutput, $step);
@@ -327,10 +323,10 @@ class phpsvnclient {
 	 *  Get repository change of a file between version
 	 *  $vini and $vend.
 	 *
-	 *  @param
+	 *  @param string $file File for which to get log data
 	 *  @param integer $vini Initial Version
 	 *  @param integer $vend End Version
-	 *  @return Array Respository Logs
+	 *  @return array Respository Logs
 	 */
 	public function getFileLogs($file, $vini=0,$vend=-1) {
 		$fileLogs = array();
@@ -382,7 +378,7 @@ class phpsvnclient {
 
 
 	/**
-	 *  Get the repository version
+	 *  Returns the repository version
 	 *
 	 *  @return integer Repository version
 	 *  @access public
@@ -580,7 +576,7 @@ class phpsvnclient {
 	}
 
 	/**
-	 *  Clean URL
+	 *  Returns $url stripped of '//'
 	 *
 	 *  Delete "//" on URL requests.
 	 *
