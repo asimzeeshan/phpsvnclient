@@ -5,12 +5,12 @@ ini_set('max_execution_time', 300);
 function delete($arg) {
     $d = opendir($arg);
     while ($f = readdir($d)) {
-	if ($f != "." && $f != "..") {
-	    if (is_dir($arg . "/" . $f))
-		delete($arg . "/" . $f);
-	    else
-		unlink($arg . "/" . $f);
-	}
+        if ($f != "." && $f != "..") {
+            if (is_dir($arg . "/" . $f))
+                delete($arg . "/" . $f);
+            else
+                unlink($arg . "/" . $f);
+        }
     }
     closedir($d);
     rmdir($arg);
@@ -23,14 +23,5 @@ require_once("phpsvnclient.php");
 $phpsvnclient = new phpsvnclient($url);
 
 //delete('../dev');
-//$phpsvnclient->checkOut('branches/TestVersion', '../dev');
-if (!file_exists("../dev")) {
-    $phpsvnclient->createOrUpdateWorkingCopy('branches/khartn', '../dev');
-} else {
-//    $a = $phpsvnclient->getRepositoryLogs('branches/khartn');
-    $a = $phpsvnclient->getLogsForUpdate('tests', 70);
-//    print_r($a);
-//    echo "\r\n";
-    //print_r($a);
-}
+$phpsvnclient->createOrUpdateWorkingCopy('branches/khartn', '../dev');
 ?>

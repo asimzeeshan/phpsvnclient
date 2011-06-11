@@ -1462,7 +1462,7 @@ class http_class
 			{
 				if(!preg_match('%^http/[0-9]+\.[0-9]+[ \t]+([0-9]+)[ \t]*(.*)$%i',$line,$matches))
 					return($this->SetError("3 it was received an unexpected HTTP response status"));
-				$this->response_status=$matches[1];
+                                $this->response_status=$matches[1];
 				$this->response_message=$matches[2];
 			}
 			if($line=="")
