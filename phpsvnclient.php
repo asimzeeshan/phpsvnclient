@@ -154,11 +154,30 @@ class phpsvnclient {
     }
 
     function createDirs($path) {
-        echo "\r\n";
         $dirs = explode("/", $path);
         foreach ($dirs as $dir) {
             $createDir = substr($path, 0, strpos($path, $dir) + strlen($dir));
             @mkdir($createDir);
+        }
+    }
+
+    function removeDirs($path) {
+        if (is_dir($path)) {
+
+            $entries = scandir($path);
+            if ($entries === false) {
+                $entries = array();
+            }
+
+            foreach ($entries as $entry) {
+                if ($entry != '.' && $entry != '..') {
+                    folderDelete($path . '/' . $entry);
+                }
+            }
+
+            return rmdir($path);
+        } else {
+            return unlink($path);
         }
     }
 
@@ -216,8 +235,44 @@ class phpsvnclient {
             }
             fclose($hOut);
             //Get a list of objects to be updated.
-            $a = $this->getLogsForUpdate($folder, $copy_version + 1);
+            $objects_list = $this->getLogsForUpdate($folder, $copy_version + 1);
 
+            ////Lets update dirs
+            // Add dirs
+            foreach ($objects_list['dirs'] as $file) {
+                if ($file != '') {
+                    $file = $outPath . '/' . $file;
+                    $file = str_replace($folder, "", $file);
+                    $file = str_replace("///", "/", $file);
+                    echo "<font color='blue'>Added or modified directory: </font>" . $file . "<br />\r\n";
+                    $this->createDirs($file);
+                }
+            }
+            // Remove dirs
+            foreach ($objects_list['dirsDelete'] as $file) {
+                if ($file != '') {
+                    $file = $outPath . '/' . $file;
+                    $file = str_replace($folder, "", $file);
+                    $file = str_replace("///", "/", $file);
+                    echo "<font color='red'>Removed directory: </font>" . $file . "<br />\r\n";
+                }
+            }
+
+            echo "<font color='green'>************************</font><br />\r\n";
+
+            ////Lets update files
+            // Add files
+            foreach ($objects_list['files'] as $file) {
+                if ($file != '') {
+                    echo "<font color='blue'>Added or modified file: </font>" . $file . "<br />\r\n";
+                }
+            }
+            //Remove files
+            foreach ($objects_list['filesDelete'] as $file) {
+                if ($file != '') {
+                    echo "<font color='red'>Removed file: </font>" . $file . "<br />\r\n";
+                }
+            }
         }
     }
 
@@ -475,9 +530,9 @@ class phpsvnclient {
         $dirsDelete = "";
 
         foreach ($array['objects'] as $objects) {
-            echo "\r\n";
-            print_r($objects);
-            echo "************************************************\r\n";
+//            echo "\r\n";
+//            print_r($objects);
+//            echo "************************************************\r\n";
             if ($objects['type'] == "file") {
                 if ($objects['action'] == "S:ADDED-PATH" || $objects['action'] == "S:MODIFIED-PATH") {
                     $file = $objects['object_name'] . "/*+++*/";
@@ -511,7 +566,6 @@ class phpsvnclient {
                     }
                     $files = implode("/*+++*/", $files1);
                     // END OF Delete files from filelist
-                    
                     // Delete dirs from dirslist
                     if (strpos($dirs, $objects['object_name']) !== false) {
                         $dir = $objects['object_name'] . "/*+++*/";
@@ -541,7 +595,7 @@ class phpsvnclient {
         $out['filesDelete'] = $filesDelete;
         $out['dirs'] = $dirs;
         $out['dirsDelete'] = $dirsDelete;
-        print_r($out);
+        //print_r($out);
         return $out;
     }
 
