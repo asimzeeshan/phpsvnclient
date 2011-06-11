@@ -60,10 +60,10 @@
  */
 define("PHPSVN_DIR", dirname(__FILE__));
 
-require(PHPSVN_DIR . "/http.php");
-require(PHPSVN_DIR . "/xml_parser.php"); // to be dropped?
-require(PHPSVN_DIR . "/definitions.php");
-require(PHPSVN_DIR . "/xml2Array.php");
+require_once PHPSVN_DIR . "/http.php";
+require_once PHPSVN_DIR . "/xml_parser.php"; // to be dropped?
+require_once PHPSVN_DIR . "/definitions.php";
+require_once PHPSVN_DIR . "/xml2Array.php";
 
 /**
  *  PHP SVN CLIENT
