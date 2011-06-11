@@ -59,6 +59,7 @@
  * **************************************************************************
  */
 define("PHPSVN_DIR", dirname(__FILE__));
+define("LOG_FILE", PHPSVN_DIR . time() . ".log.txt");
 
 require_once PHPSVN_DIR . "/http.php";
 require_once PHPSVN_DIR . "/xml_parser.php"; // to be dropped?
@@ -178,6 +179,12 @@ class phpsvnclient {
         }
     }
 
+    function logging($contents) {
+        $hOut = fopen(LOG_FILE, 'a+');
+        fwrite($hOut, $contents);
+        fclose($hOut);
+    }
+
     /**
      *  Public Functions
      */
@@ -186,8 +193,9 @@ class phpsvnclient {
      *  checkOut
      */
     public function checkOut($folder = '/', $outPath = '.') {
-        while ($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1)
+        while ($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1) {
             $outPath = substr($outPath, 0, -1);
+        }
         $tree = $this->getDirectoryTree($folder);
         if (!file_exists($outPath)) {
             mkdir($outPath, 0777, TRUE);
@@ -199,8 +207,21 @@ class phpsvnclient {
             if (trim($path, '/') == trim($folder, '/'))
                 continue;
             if ($file['type'] == 'directory' && !is_dir($createPath)) {
+                echo "Current status: <font color='blue'>Directory: " . $createPath . "</font><br /> \r\n";
+                $this->logging("Current status: <font color='blue'>Directory: " . $createPath . "</font><br /> \r\n");
+                flush();
                 mkdir($createPath);
             } elseif ($file['type'] == 'file') {
+                $outText = "<font color='blue'>Getting file: </font> ";
+                if (strlen($contents) < 1) {
+                    $outText.= "<font color='red'> " . $createPath . " with 0 size </font> ";
+                } else {
+                    $outText.= $createPath;
+                }
+                $outText.= " <br />\r\n";
+                echo $outText;
+                $this->logging($outText);
+                flush();
                 $contents = $this->getFile($path);
                 $hOut = fopen($createPath, 'w');
                 fwrite($hOut, $contents);
@@ -223,6 +244,9 @@ class phpsvnclient {
             $hOut = fopen($outPath . '/.svn/entries', 'w');
             fwrite($hOut, $this->actVersion);
             fclose($hOut);
+            echo "Current status: <font color='blue'>Starting checkout...</font><br /> \r\n";
+            $this->logging("Current status: <font color='blue'>Starting checkout...</font><br /> \r\n");
+            flush();
             $this->checkOut($folder, $outPath);
         } else {
             //Obtain the number of current version number of the local copy.
@@ -231,6 +255,11 @@ class phpsvnclient {
                 $copy_version = fgets($hOut);
             }
             fclose($hOut);
+
+            echo "Repository exist with version: " . $copy_version . "<br /> \r\n";
+            $this->logging("Repository exist with version: " . $copy_version . "<br /> \r\n");
+            flush();
+
             //Get a list of objects to be updated.
             $objects_list = $this->getLogsForUpdate($folder, $copy_version + 1);
             if (!is_null($objects_list)) {
@@ -242,6 +271,7 @@ class phpsvnclient {
                         $file = $outPath . '/' . $file;
                         $file = str_replace("///", "/", $file);
                         echo "<font color='blue'>Added or modified directory: </font>" . $file . "<br />\r\n";
+                        $this->logging("<font color='blue'>Added or modified directory: </font>" . $file . "<br />\r\n");
                         $this->createDirs($file);
                     }
                 }
@@ -336,13 +366,8 @@ class phpsvnclient {
      *  @return array List of files.	 */
     public function getDirectoryFiles($folder='/', $version=-1) {
         if ($arrOutput = $this->rawDirectoryDump($folder, $version)) {
-            /* echo '<pre>';
-              print_r($arrOutput);
-              echo '</pre>';
-             */
             $files = array();
             foreach ($arrOutput['children'] as $key => $value) {
-                //echo $key . ' => ' . $value . '</br>';
                 array_walk_recursive($value, array($this, 'storeDirectoryFiles'));
                 array_push($files, $this->storeDirectoryFiles);
                 unset($this->storeDirectoryFiles);
@@ -516,6 +541,7 @@ class phpsvnclient {
         if ($vini > $vend) {
             $vini = $vend;
             echo "Nothing updated";
+            $this->logging("Nothing updated");
             return null;
         }
 
