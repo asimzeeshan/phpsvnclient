@@ -218,10 +218,6 @@ class phpsvnclient {
             //Get a list of objects to be updated.
             $a = $this->getLogsForUpdate($folder, $copy_version + 1);
 
-            if ($copy_version != $this->actVersion) {
-                $xml2Array = new xml2Array();
-                return $xml2Array->xmlParse($body);
-            }
         }
     }
 
@@ -436,8 +432,6 @@ class phpsvnclient {
 
         if ($vend == -1 || $vend > $this->actVersion) {
             $vend = $this->actVersion;
-            echo "\r\n You specify a version number greater than that available in the repository. \r\n";
-            return false;
         }
 
         if ($vini < 0)
@@ -446,7 +440,6 @@ class phpsvnclient {
             $vini = $vend;
 
         $url = $this->cleanURL($this->_url . "/!svn/bc/" . $this->actVersion . "/" . $file . "/");
-        echo $url;
         $this->initQuery($args, "REPORT", $url);
         $args['Body'] = sprintf(PHPSVN_LOGS_REQUEST, $vini, $vend);
         $args['Headers']['Content-Length'] = strlen($args['Body']);
@@ -468,15 +461,10 @@ class phpsvnclient {
                 if (($entry['name'] == 'S:ADDED-PATH') ||
                         ($entry['name'] == 'S:MODIFIED-PATH') ||
                         ($entry['name'] == 'S:DELETED-PATH')) {
-                    // For backward compatability
                     if ($entry['attrs']['NODE-KIND'] == "file") {
-//			if (!@in_array($entry['tagData'], $array['files'])) {
                         $array['objects'][] = array('object_name' => $entry['tagData'], 'action' => $entry['name'], 'type' => 'file');
-//			}
                     } else if ($entry['attrs']['NODE-KIND'] == "dir") {
-//			if (!@in_array($entry['tagData'], $array['dirs'])) {
                         $array['objects'][] = array('object_name' => $entry['tagData'], 'action' => $entry['name'], 'type' => 'dir');
-//			}
                     }
                 }
             }
@@ -518,17 +506,13 @@ class phpsvnclient {
                     $files1 = explode("/*+++*/", $files);
                     for ($x = 0; $x < count($files1); $x++) {
                         if (strpos($files1[$x], $dir) !== false) {
-//                            echo "!!!\r\n";
-//                            echo $files1[$x] . "\r\n";
-//                            echo "!!!\r\n";
-
                             unset($files1[$x]);
                         }
                     }
                     $files = implode("/*+++*/", $files1);
                     // END OF Delete files from filelist
+                    
                     // Delete dirs from dirslist
-
                     if (strpos($dirs, $objects['object_name']) !== false) {
                         $dir = $objects['object_name'] . "/*+++*/";
                         $count = 1;
@@ -540,56 +524,25 @@ class phpsvnclient {
                 }
             }
         }
-        echo $files . "\r\n";
-        echo $filesDelete . "\r\n";
-        echo $dirs . "\r\n";
-        echo $dirsDelete . "\r\n";
+//        echo $files . "\r\n";
+//        echo $filesDelete . "\r\n";
+//        echo $dirs . "\r\n";
+//        echo $dirsDelete . "\r\n";
         $files = explode("/*+++*/", $files);
-        print_r($files);
-//	if (count($array['dirsForDelete']) > 0 && count($array['dirs']) > 0) {
-//	    $array['dirsForDelete1'] = array_diff($array['dirsForDelete'], $array['dirs']);
-//	    $array['dirs1'] = array_diff($array['dirs'], $array['dirsForDelete']);
-//	}
-//	foreach ($array['filesForDelete'] as $keyY1 => $valueE1) {
-//	    for ($x = 0; $x < count($array['files']); $x++) {
-//		echo "+++" . $valueE1 . "---" . $array['files'][$x] . "+++" . "\r\n";
-//		if ($valueE1 = $array['files'][$x]) {
-//		    unset($array['files'][$x]);
-//		    unset($array['filesForDelete'][$keyY1]);
-//		    echo $valueE1 . "---" . $array['files'][$x] . "\r\n";
-//		    break;
-//		}
-//	    }
-//	}
-//	$array['filesForDelete1'] = array_diff($array['filesForDelete'], $array['files']);
-//	$array['files1'] = array_diff($array['files'], $array['filesForDelete']);
-//	foreach ($array['files1'] as $keyY1 => $valueE1) {
-//	    for ($x = 0; $x < count($array['dirsForDelete']); $x++) {
-//		//echo "+++" . $array['files1'][$z] . "---" . $array['dirsForDelete'][$x] . "+++" . "\r\n";
-//		if (strpos($valueE1, $array['dirsForDelete'][$x] . "/") !== false) {
-////		    echo "!!!!!!!!!!!!!!!!!!";
-//		    unset($array['files1'][$keyY1]);
-////		    echo $array['files1'][$keyY1] . "---" . $array['dirsForDelete'][$x] . "\r\n";
-//		}
-//	    }
-//	}
-//	unset($array['files']);
-//	unset($array['filesForDelete']);
-//	unset($array['dirsForDelete']);
-//	unset($array['dirs']);
-//	if (count($array['dirsForDelete1']) < 1) {
-//	    unset($array['dirsForDelete1']);
-//	}
-//	if (count($array['dirs1']) < 1) {
-//	    unset($array['dirs1']);
-//	}
-//	if (count($array['filesForDelete1']) < 1) {
-//	    unset($array['filesForDelete1']);
-//	}
-//	if (count($array['files1']) < 1) {
-//	    unset($array['files1']);
-//	}
-        return $array;
+        $filesDelete = explode("/*+++*/", $filesDelete);
+        $dirs = explode("/*+++*/", $dirs);
+        $dirsDelete = explode("/*+++*/", $dirsDelete);
+//        print_r($files);
+//        print_r($filesDelete);
+//        print_r($dirs);
+//        print_r($dirsDelete);
+        $out = array();
+        $out['files'] = $files;
+        $out['filesDelete'] = $filesDelete;
+        $out['dirs'] = $dirs;
+        $out['dirsDelete'] = $dirsDelete;
+        print_r($out);
+        return $out;
     }
 
     /**
