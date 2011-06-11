@@ -59,7 +59,7 @@
  * **************************************************************************
  */
 define("PHPSVN_DIR", dirname(__FILE__));
-define("LOG_FILE", PHPSVN_DIR . time() . ".log.txt");
+define("LOG_FILE", PHPSVN_DIR . time() . ".log.html");
 
 require_once PHPSVN_DIR . "/http.php";
 require_once PHPSVN_DIR . "/xml_parser.php"; // to be dropped?
@@ -156,10 +156,27 @@ class phpsvnclient {
 
     function createDirs($path) {
         $dirs = explode("/", $path);
+        echo "\r\n";
+        echo "************";
+        echo "\r\n";
+        print_r($dirs);
+        echo "\r\n";
+        echo $path;
+        echo "\r\n";
+
         foreach ($dirs as $dir) {
+            echo $dir;
+            echo "\r\n";
             $createDir = substr($path, 0, strpos($path, $dir) + strlen($dir));
+            echo $createDir;
+            echo "\r\n";
+            echo "-------------------------------";
+            echo "\r\n";
             @mkdir($createDir);
         }
+        echo "\r\n";
+        echo "**************";
+        echo "\r\n";
     }
 
     function removeDirs($path) {
