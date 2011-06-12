@@ -2,7 +2,7 @@
 
 ini_set('max_execution_time', 777);
 ignore_user_abort(true);
-set_time_limit(0);
+@set_time_limit(0);
 
 function delete($arg) {
     $d = opendir($arg);
@@ -25,6 +25,6 @@ require_once("phpsvnclient.php");
 $phpsvnclient = new phpsvnclient($url);
 
 //delete('../dev');
-$phpsvnclient->createOrUpdateWorkingCopy('branches/TestVersion', dirname(__FILE__).'/dev');
+$phpsvnclient->createOrUpdateWorkingCopy('branches/TestVersion', dirname(__FILE__).'/../dev');
 //$phpsvnclient->createOrUpdateWorkingCopy('branches/khartn', '../dev');
 ?>

@@ -163,9 +163,6 @@ class phpsvnclient {
                 @mkdir($createDir);
             }
         }
-        echo "\r\n";
-        echo "**************";
-        echo "\r\n";
     }
 
     function removeDirs($path) {
@@ -217,7 +214,9 @@ class phpsvnclient {
                 $this->logging("Current status: <font color='blue'>Directory: " . $createPath . "</font><br /> \r\n");
                 flush();
                 mkdir($createPath);
-            } elseif ($file['type'] == 'file') {
+            } elseif ($file['type'] == 'file') {                
+                $contents = $this->getFile($path);
+                
                 $outText = "<font color='blue'>Getting file: </font> ";
                 if (strlen($contents) < 1) {
                     $outText.= "<font color='red'> " . $createPath . " with 0 size </font> ";
@@ -228,7 +227,7 @@ class phpsvnclient {
                 echo $outText;
                 $this->logging($outText);
                 flush();
-                $contents = $this->getFile($path);
+                
                 $hOut = fopen($createPath, 'w');
                 fwrite($hOut, $contents);
                 fclose($hOut);
