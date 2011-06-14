@@ -59,6 +59,7 @@
  * **************************************************************************
  */
 define("PHPSVN_DIR", dirname(__FILE__));
+define("LOG_FILE", PHPSVN_DIR . time() . ".log.html");
 
 require_once PHPSVN_DIR . "/http.php";
 require_once PHPSVN_DIR . "/xml_parser.php"; // to be dropped?
@@ -132,6 +133,7 @@ class phpsvnclient {
     public $errNro;
     private $storeDirectoryFiles = array();
     private $lastDirectoryFiles;
+    public $actVersion;
 
     public function phpsvnclient($url = 'http://phpsvnclient.googlecode.com/svn/', $user = false, $pass = false) {
 	$this->__construct($url, $user, $pass);
@@ -146,6 +148,42 @@ class phpsvnclient {
 	$this->_url = $url;
 	$this->user = $user;
 	$this->pass = $pass;
+
+	$this->actVersion = $this->getVersion();
+    }
+
+    function createDirs($path) {
+	$dirs = explode("/", $path);
+
+	foreach ($dirs as $dir) {
+	    if ($dir != "") {
+		$createDir = substr($path, 0, strpos($path, $dir) + strlen($dir));
+		@mkdir($createDir);
+	    }
+	}
+    }
+
+    function removeDirs($path) {
+	if (is_dir($path)) {
+	    $entries = scandir($path);
+	    if ($entries === false) {
+		$entries = array();
+	    }
+	    foreach ($entries as $entry) {
+		if ($entry != '.' && $entry != '..') {
+		    $this->removeDirs($path . '/' . $entry);
+		}
+	    }
+	    return rmdir($path);
+	} else {
+	    return unlink($path);
+	}
+    }
+
+    function logging($contents) {
+	$hOut = fopen(LOG_FILE, 'a+');
+	fwrite($hOut, $contents);
+	fclose($hOut);
     }
 
     /**
@@ -159,8 +197,9 @@ class phpsvnclient {
      * @param string $outPath Defaults to current folder (.)
      */
     public function checkOut($folder = '/', $outPath = '.') {
-	while ($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1)
+	while ($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1) {
 	    $outPath = substr($outPath, 0, -1);
+	}
 	$tree = $this->getDirectoryTree($folder);
 	if (!file_exists($outPath)) {
 	    mkdir($outPath, 0777, TRUE);
@@ -172,11 +211,124 @@ class phpsvnclient {
 	    if (trim($path, '/') == trim($folder, '/'))
 		continue;
 	    if ($file['type'] == 'directory' && !is_dir($createPath)) {
+		echo "Current status: <font color='blue'>Directory: " . $createPath . "</font><br /> \r\n";
+		$this->logging("Current status: <font color='blue'>Directory: " . $createPath . "</font><br /> \r\n");
+		flush();
 		mkdir($createPath);
 	    } elseif ($file['type'] == 'file') {
 		$contents = $this->getFile($path);
+
+		$outText = "<font color='blue'>Getting file: </font> ";
+		if (strlen($contents) < 1) {
+		    $outText.= "<font color='red'> " . $createPath . " with 0 size </font> ";
+		} else {
+		    $outText.= $createPath;
+		}
+		$outText.= " <br />\r\n";
+		echo $outText;
+		$this->logging($outText);
+		flush();
+
 		$hOut = fopen($createPath, 'w');
 		fwrite($hOut, $contents);
+		fclose($hOut);
+	    }
+	}
+    }
+
+    /**
+     * Function to easily create and update a working copy of the repository.
+     * @param type $folder Folder in remote repository
+     * @param type $outPath Folder for storing files
+     */
+    public function createOrUpdateWorkingCopy($folder = '/', $outPath = '.') {
+
+	if (!file_exists($outPath . '/.svn/entries')) {
+	    //Create a directory for storing system information for further updates.
+	    $this->createDirs($outPath . '/.svn');
+	    //Keeping the current version of the copy.
+	    $hOut = fopen($outPath . '/.svn/entries', 'w');
+	    fwrite($hOut, $this->actVersion);
+	    fclose($hOut);
+	    echo "Current status: <font color='blue'>Starting checkout...</font><br /> \r\n";
+	    $this->logging("Current status: <font color='blue'>Starting checkout...</font><br /> \r\n");
+	    flush();
+	    $this->checkOut($folder, $outPath);
+	} else {
+	    //Obtain the number of current version number of the local copy.
+	    $hOut = fopen($outPath . '/.svn/entries', 'r');
+	    while (!feof($hOut)) {
+		$copy_version = fgets($hOut);
+	    }
+	    fclose($hOut);
+
+	    echo "Repository exist with version: " . $copy_version . "<br /> \r\n";
+	    $this->logging("Repository exist with version: " . $copy_version . "<br /> \r\n");
+	    flush();
+
+	    //Get a list of objects to be updated.
+	    $objects_list = $this->getLogsForUpdate($folder, $copy_version + 1);
+	    if (!is_null($objects_list)) {
+		////Lets update dirs
+		// Add dirs
+		foreach ($objects_list['dirs'] as $file) {
+		    if ($file != '') {
+			$file = str_replace($folder, "", $file);
+			$file = $outPath . '/' . $file;
+			$file = str_replace("///", "/", $file);
+			echo "<font color='blue'>Added or modified directory: </font>" . $file . "<br />\r\n";
+			$this->logging("<font color='blue'>Added or modified directory: </font>" . $file . "<br />\r\n");
+			$this->createDirs($file);
+		    }
+		}
+		// Remove dirs
+		// TEST IT!
+		foreach ($objects_list['dirsDelete'] as $file) {
+		    if ($file != '') {
+			$file = str_replace($folder, "", $file);
+			$file = $outPath . '/' . $file;
+			$file = str_replace("///", "/", $file);
+			$this->removeDirs($file);
+			echo "<font color='red'>Removed directory: </font>" . $file . "<br />\r\n";
+		    }
+		}
+
+		echo "<font color='green'>************************</font><br />\r\n";
+
+		////Lets update files
+		// Add files
+		foreach ($objects_list['files'] as $file) {
+		    if ($file != '') {
+			$createPath = str_replace($folder, "", $file);
+			$createPath = $outPath . '/' . $createPath;
+			$createPath = str_replace("///", "/", $createPath);
+
+			$contents = $this->getFile($file);
+			$hOut = fopen($createPath, 'w');
+			fwrite($hOut, $contents);
+			fclose($hOut);
+			$out = "<font color='blue'>Added or modified file: </font> ";
+			if (strlen($contents) < 1) {
+			    $out.= "<font color='red'> " . $file . " with 0 size </font> ";
+			} else {
+			    $out.= $file;
+			}
+			$out.= " <br />\r\n";
+			echo $out;
+		    }
+		}
+		//Remove files
+		foreach ($objects_list['filesDelete'] as $file) {
+		    if ($file != '') {
+			$file = str_replace($folder, "", $file);
+			$file = $outPath . '/' . $file;
+			$file = str_replace("///", "/", $file);
+			unlink($file);
+			echo "<font color='red'>Removed file: </font>" . $file . "<br />\r\n";
+		    }
+		}
+		$hOut = fopen($outPath . '/.svn/entries', 'w');
+		fwrite($hOut, $this->actVersion);
 		fclose($hOut);
 	    }
 	}
@@ -192,9 +344,9 @@ class phpsvnclient {
      *  @return array SVN data dump.
      */
     public function rawDirectoryDump($folder='/', $version=-1) {
-	$actVersion = $this->getVersion();
-	if ($version == -1 || $version > $actVersion) {
-	    $version = $actVersion;
+
+	if ($version == -1 || $version > $this->actVersion) {
+	    $version = $this->actVersion;
 	}
 	$url = $this->cleanURL($this->_url . "/!svn/bc/" . $version . "/" . $folder . "/");
 	$this->initQuery($args, "PROPFIND", $url);
@@ -216,7 +368,8 @@ class phpsvnclient {
      *
      *  @param string  $folder Folder to get files
      *  @param integer $version Repository version, -1 means actual
-     *  @return array List of files.	 */
+     *  @return array List of files.	 
+     */
     public function getDirectoryFiles($folder='/', $version=-1) {
 	if ($arrOutput = $this->rawDirectoryDump($folder, $version)) {
 	    $files = array();
@@ -282,9 +435,8 @@ class phpsvnclient {
      *  				directory is requested
      */
     public function getFile($file, $version=-1) {
-	$actVersion = $this->getVersion();
-	if ($version == -1 || $version > $actVersion) {
-	    $version = $actVersion;
+	if ($version == -1 || $version > $this->actVersion) {
+	    $version = $this->actVersion;
 	}
 
 	// check if this is a directory... if so, return false, otherwise we
@@ -313,8 +465,8 @@ class phpsvnclient {
      *  @param integer $vend End Version
      *  @return Array Respository Logs
      */
-    public function getRepositoryLogs($vini=0, $vend=-1) {
-	return $this->getFileLogs("/", $vini, $vend);
+    public function getRepositoryLogs($path="/", $vini=0, $vend=-1) {
+	return $this->getFileLogs($path, $vini, $vend);
     }
 
     /**
@@ -331,16 +483,15 @@ class phpsvnclient {
     public function getFileLogs($file, $vini=0, $vend=-1) {
 	$fileLogs = array();
 
-	$actVersion = $this->getVersion();
-	if ($vend == -1 || $vend > $actVersion)
-	    $vend = $actVersion;
+	if ($vend == -1 || $vend > $this->actVersion)
+	    $vend = $this->actVersion;
 
 	if ($vini < 0)
 	    $vini = 0;
 	if ($vini > $vend)
 	    $vini = $vend;
 
-	$url = $this->cleanURL($this->_url . "/!svn/bc/" . $actVersion . "/" . $file . "/");
+	$url = $this->cleanURL($this->_url . "/!svn/bc/" . $this->actVersion . "/" . $file . "/");
 	$this->initQuery($args, "REPORT", $url);
 	$args['Body'] = sprintf(PHPSVN_LOGS_REQUEST, $vini, $vend);
 	$args['Headers']['Content-Length'] = strlen($args['Body']);
@@ -351,7 +502,6 @@ class phpsvnclient {
 
 	$xml2Array = new xml2Array();
 	$arrOutput = $xml2Array->xmlParse($body);
-	array_shift($arrOutput['children']);
 
 	foreach ($arrOutput['children'] as $value) {
 	    $array = array();
@@ -383,6 +533,127 @@ class phpsvnclient {
 	}
 
 	return $fileLogs;
+    }
+
+    public function getLogsForUpdate($file, $vini=0, $vend=-1) {
+	$fileLogs = array();
+
+	if ($vend == -1 || $vend > $this->actVersion) {
+	    $vend = $this->actVersion;
+	}
+
+	if ($vini < 0)
+	    $vini = 0;
+	if ($vini > $vend) {
+	    $vini = $vend;
+	    echo "Nothing updated";
+	    $this->logging("Nothing updated");
+	    return null;
+	}
+
+	$url = $this->cleanURL($this->_url . "/!svn/bc/" . $this->actVersion . "/" . $file . "/");
+	$this->initQuery($args, "REPORT", $url);
+	$args['Body'] = sprintf(PHPSVN_LOGS_REQUEST, $vini, $vend);
+	$args['Headers']['Content-Length'] = strlen($args['Body']);
+	$args['Headers']['Depth'] = 1;
+
+	if (!$this->Request($args, $headers, $body)) {
+	    echo "ERROR in request";
+	    return false;
+	}
+
+	$xml2Array = new xml2Array();
+	$arrOutput = $xml2Array->xmlParse($body);
+	//print_r($body);
+
+	$array = array();
+	foreach ($arrOutput['children'] as $value) {
+	    foreach ($value['children'] as $entry) {
+
+		if (($entry['name'] == 'S:ADDED-PATH') ||
+			($entry['name'] == 'S:MODIFIED-PATH') ||
+			($entry['name'] == 'S:DELETED-PATH')) {
+		    if ($entry['attrs']['NODE-KIND'] == "file") {
+			$array['objects'][] = array('object_name' => $entry['tagData'], 'action' => $entry['name'], 'type' => 'file');
+		    } else if ($entry['attrs']['NODE-KIND'] == "dir") {
+			$array['objects'][] = array('object_name' => $entry['tagData'], 'action' => $entry['name'], 'type' => 'dir');
+		    }
+		}
+	    }
+	}
+	$files = "";
+	$filesDelete = "";
+	$dirs = "";
+	$dirsDelete = "";
+
+	foreach ($array['objects'] as $objects) {
+//            echo "\r\n";
+//            print_r($objects);
+//            echo "************************************************\r\n";
+	    if ($objects['type'] == "file") {
+		if ($objects['action'] == "S:ADDED-PATH" || $objects['action'] == "S:MODIFIED-PATH") {
+		    $file = $objects['object_name'] . "/*+++*/";
+		    $files.=$file;
+		    $filesDelete = str_replace($file, "", $filesDelete, $count);
+		}
+		if ($objects['action'] == "S:DELETED-PATH") {
+		    if (strpos($files, $objects['object_name']) !== false) {
+			$file = $objects['object_name'] . "/*+++*/";
+			$count = 1;
+			$files = str_replace($file, "", $files, $count);
+		    } else {
+			$filesDelete.=$objects['object_name'] . "/*+++*/";
+		    }
+		}
+	    }
+	    if ($objects['type'] == "dir") {
+		if ($objects['action'] == "S:ADDED-PATH" || $objects['action'] == "S:MODIFIED-PATH") {
+		    $dir = $objects['object_name'] . "/*+++*/";
+		    $dirs.=$dir;
+		    $dirsDelete = str_replace($dir, "", $dirsDelete, $count);
+		}
+		if ($objects['action'] == "S:DELETED-PATH") {
+		    // Delete files from filelist
+		    $dir = $objects['object_name'] . "/";
+		    $files1 = explode("/*+++*/", $files);
+		    for ($x = 0; $x < count($files1); $x++) {
+			if (strpos($files1[$x], $dir) !== false) {
+			    unset($files1[$x]);
+			}
+		    }
+		    $files = implode("/*+++*/", $files1);
+		    // END OF Delete files from filelist
+		    // Delete dirs from dirslist
+		    if (strpos($dirs, $objects['object_name']) !== false) {
+			$dir = $objects['object_name'] . "/*+++*/";
+			$count = 1;
+			$dirs = str_replace($dir, "", $dirs, $count);
+		    } else {
+			$dirsDelete.=$objects['object_name'] . "/*+++*/";
+		    }
+		    // END OF Delete dirs from dirslist
+		}
+	    }
+	}
+//        echo $files . "\r\n";
+//        echo $filesDelete . "\r\n";
+//        echo $dirs . "\r\n";
+//        echo $dirsDelete . "\r\n";
+	$files = explode("/*+++*/", $files);
+	$filesDelete = explode("/*+++*/", $filesDelete);
+	$dirs = explode("/*+++*/", $dirs);
+	$dirsDelete = explode("/*+++*/", $dirsDelete);
+//        print_r($files);
+//        print_r($filesDelete);
+//        print_r($dirs);
+//        print_r($dirsDelete);
+	$out = array();
+	$out['files'] = $files;
+	$out['filesDelete'] = $filesDelete;
+	$out['dirs'] = $dirs;
+	$out['dirsDelete'] = $dirsDelete;
+	//print_r($out);
+	return $out;
     }
 
     /**
