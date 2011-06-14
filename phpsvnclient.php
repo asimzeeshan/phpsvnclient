@@ -134,18 +134,18 @@ class phpsvnclient {
     private $lastDirectoryFiles;
 
     public function phpsvnclient($url = 'http://phpsvnclient.googlecode.com/svn/', $user = false, $pass = false) {
-        $this->__construct($url, $user, $pass);
-        register_shutdown_function(array(&$this, '__destruct'));
+	$this->__construct($url, $user, $pass);
+	register_shutdown_function(array(&$this, '__destruct'));
     }
 
     public function __construct($url = 'http://phpsvnclient.googlecode.com/svn/', $user = false, $pass = false) {
-        $http = & $this->_http;
-        $http = new http_class;
-        $http->user_agent = "phpsvnclient (http://phpsvnclient.googlecode.com/)";
+	$http = & $this->_http;
+	$http = new http_class;
+	$http->user_agent = "phpsvnclient (http://phpsvnclient.googlecode.com/)";
 
-        $this->_url = $url;
-        $this->user = $user;
-        $this->pass = $pass;
+	$this->_url = $url;
+	$this->user = $user;
+	$this->pass = $pass;
     }
 
     /**
@@ -159,27 +159,27 @@ class phpsvnclient {
      * @param string $outPath Defaults to current folder (.)
      */
     public function checkOut($folder = '/', $outPath = '.') {
-        while ($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1)
-            $outPath = substr($outPath, 0, -1);
-        $tree = $this->getDirectoryTree($folder);
-        if (!file_exists($outPath)) {
-            mkdir($outPath, 0777, TRUE);
-        }
-        foreach ($tree as $file) {
-            $path = $file['path'];
-            $tmp = strstr(trim($path, '/'), trim($folder, '/'));
-            $createPath = $outPath . '/' . ($tmp ? substr($tmp, strlen(trim($folder, '/'))) : "");
-            if (trim($path, '/') == trim($folder, '/'))
-                continue;
-            if ($file['type'] == 'directory' && !is_dir($createPath)) {
-                mkdir($createPath);
-            } elseif ($file['type'] == 'file') {
-                $contents = $this->getFile($path);
-                $hOut = fopen($createPath, 'w');
-                fwrite($hOut, $contents);
-                fclose($hOut);
-            }
-        }
+	while ($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1)
+	    $outPath = substr($outPath, 0, -1);
+	$tree = $this->getDirectoryTree($folder);
+	if (!file_exists($outPath)) {
+	    mkdir($outPath, 0777, TRUE);
+	}
+	foreach ($tree as $file) {
+	    $path = $file['path'];
+	    $tmp = strstr(trim($path, '/'), trim($folder, '/'));
+	    $createPath = $outPath . '/' . ($tmp ? substr($tmp, strlen(trim($folder, '/'))) : "");
+	    if (trim($path, '/') == trim($folder, '/'))
+		continue;
+	    if ($file['type'] == 'directory' && !is_dir($createPath)) {
+		mkdir($createPath);
+	    } elseif ($file['type'] == 'file') {
+		$contents = $this->getFile($path);
+		$hOut = fopen($createPath, 'w');
+		fwrite($hOut, $contents);
+		fclose($hOut);
+	    }
+	}
     }
 
     /**
@@ -192,20 +192,20 @@ class phpsvnclient {
      *  @return array SVN data dump.
      */
     public function rawDirectoryDump($folder='/', $version=-1) {
-        $actVersion = $this->getVersion();
-        if ($version == -1 || $version > $actVersion) {
-            $version = $actVersion;
-        }
-        $url = $this->cleanURL($this->_url . "/!svn/bc/" . $version . "/" . $folder . "/");
-        $this->initQuery($args, "PROPFIND", $url);
-        $args['Body'] = PHPSVN_NORMAL_REQUEST;
-        $args['Headers']['Content-Length'] = strlen(PHPSVN_NORMAL_REQUEST);
+	$actVersion = $this->getVersion();
+	if ($version == -1 || $version > $actVersion) {
+	    $version = $actVersion;
+	}
+	$url = $this->cleanURL($this->_url . "/!svn/bc/" . $version . "/" . $folder . "/");
+	$this->initQuery($args, "PROPFIND", $url);
+	$args['Body'] = PHPSVN_NORMAL_REQUEST;
+	$args['Headers']['Content-Length'] = strlen(PHPSVN_NORMAL_REQUEST);
 
-        if (!$this->Request($args, $headers, $body)) {
-            return false;
-        }
-        $xml2Array = new xml2Array();
-        return $xml2Array->xmlParse($body);
+	if (!$this->Request($args, $headers, $body)) {
+	    return false;
+	}
+	$xml2Array = new xml2Array();
+	return $xml2Array->xmlParse($body);
     }
 
     /**
@@ -218,16 +218,16 @@ class phpsvnclient {
      *  @param integer $version Repository version, -1 means actual
      *  @return array List of files.	 */
     public function getDirectoryFiles($folder='/', $version=-1) {
-        if ($arrOutput = $this->rawDirectoryDump($folder, $version)) {
-            $files = array();
-            foreach ($arrOutput['children'] as $key => $value) {
-                array_walk_recursive($value, array($this, 'storeDirectoryFiles'));
-                array_push($files, $this->storeDirectoryFiles);
-                unset($this->storeDirectoryFiles);
-            }
-            return $files;
-        }
-        return false;
+	if ($arrOutput = $this->rawDirectoryDump($folder, $version)) {
+	    $files = array();
+	    foreach ($arrOutput['children'] as $key => $value) {
+		array_walk_recursive($value, array($this, 'storeDirectoryFiles'));
+		array_push($files, $this->storeDirectoryFiles);
+		unset($this->storeDirectoryFiles);
+	    }
+	    return $files;
+	}
+	return false;
     }
 
     /**
@@ -245,32 +245,32 @@ class phpsvnclient {
      *  @return array List of files and directories.
      */
     public function getDirectoryTree($folder='/', $version=-1, $recursive=true) {
-        $directoryTree = array();
+	$directoryTree = array();
 
-        if (!($arrOutput = $this->getDirectoryFiles($folder, $version)))
-            return false;
+	if (!($arrOutput = $this->getDirectoryFiles($folder, $version)))
+	    return false;
 
-        if (!$recursive)
-            return $arrOutput[0];
+	if (!$recursive)
+	    return $arrOutput[0];
 
-        while (count($arrOutput) && is_array($arrOutput)) {
-            $array = array_shift($arrOutput);
+	while (count($arrOutput) && is_array($arrOutput)) {
+	    $array = array_shift($arrOutput);
 
-            array_push($directoryTree, $array);
+	    array_push($directoryTree, $array);
 
-            if (trim($array['path'], '/') == trim($folder, '/'))
-                continue;
+	    if (trim($array['path'], '/') == trim($folder, '/'))
+		continue;
 
-            if ($array['type'] == 'directory') {
-                $walk = $this->getDirectoryFiles($array['path'], $version);
-                array_shift($walk);
+	    if ($array['type'] == 'directory') {
+		$walk = $this->getDirectoryFiles($array['path'], $version);
+		array_shift($walk);
 
-                foreach ($walk as $step) {
-                    array_unshift($arrOutput, $step);
-                }
-            }
-        }
-        return $directoryTree;
+		foreach ($walk as $step) {
+		    array_unshift($arrOutput, $step);
+		}
+	    }
+	}
+	return $directoryTree;
     }
 
     /**
@@ -282,25 +282,25 @@ class phpsvnclient {
      *  				directory is requested
      */
     public function getFile($file, $version=-1) {
-        $actVersion = $this->getVersion();
-        if ($version == -1 || $version > $actVersion) {
-            $version = $actVersion;
-        }
+	$actVersion = $this->getVersion();
+	if ($version == -1 || $version > $actVersion) {
+	    $version = $actVersion;
+	}
 
-        // check if this is a directory... if so, return false, otherwise we
-        // get the HTML output of the directory listing from the SVN server. 
-        // This is maybe a bit heavy since it makes another connection to the
-        // SVN server. Maybe add this as an option/parameter? ES 23/06/08
-        $fileInfo = $this->getDirectoryTree($file, $version, false);
-        if ($fileInfo["type"] == "directory")
-            return false;
+	// check if this is a directory... if so, return false, otherwise we
+	// get the HTML output of the directory listing from the SVN server. 
+	// This is maybe a bit heavy since it makes another connection to the
+	// SVN server. Maybe add this as an option/parameter? ES 23/06/08
+	$fileInfo = $this->getDirectoryTree($file, $version, false);
+	if ($fileInfo["type"] == "directory")
+	    return false;
 
-        $url = $this->cleanURL($this->_url . "/!svn/bc/" . $version . "/" . $file . "/");
-        $this->initQuery($args, "GET", $url);
-        if (!$this->Request($args, $headers, $body))
-            return false;
+	$url = $this->cleanURL($this->_url . "/!svn/bc/" . $version . "/" . $file . "/");
+	$this->initQuery($args, "GET", $url);
+	if (!$this->Request($args, $headers, $body))
+	    return false;
 
-        return $body;
+	return $body;
     }
 
     /**
@@ -314,7 +314,7 @@ class phpsvnclient {
      *  @return Array Respository Logs
      */
     public function getRepositoryLogs($vini=0, $vend=-1) {
-        return $this->getFileLogs("/", $vini, $vend);
+	return $this->getFileLogs("/", $vini, $vend);
     }
 
     /**
@@ -329,60 +329,60 @@ class phpsvnclient {
      *  @return array Respository Logs
      */
     public function getFileLogs($file, $vini=0, $vend=-1) {
-        $fileLogs = array();
+	$fileLogs = array();
 
-        $actVersion = $this->getVersion();
-        if ($vend == -1 || $vend > $actVersion)
-            $vend = $actVersion;
+	$actVersion = $this->getVersion();
+	if ($vend == -1 || $vend > $actVersion)
+	    $vend = $actVersion;
 
-        if ($vini < 0)
-            $vini = 0;
-        if ($vini > $vend)
-            $vini = $vend;
+	if ($vini < 0)
+	    $vini = 0;
+	if ($vini > $vend)
+	    $vini = $vend;
 
-        $url = $this->cleanURL($this->_url . "/!svn/bc/" . $actVersion . "/" . $file . "/");
-        $this->initQuery($args, "REPORT", $url);
-        $args['Body'] = sprintf(PHPSVN_LOGS_REQUEST, $vini, $vend);
-        $args['Headers']['Content-Length'] = strlen($args['Body']);
-        $args['Headers']['Depth'] = 1;
+	$url = $this->cleanURL($this->_url . "/!svn/bc/" . $actVersion . "/" . $file . "/");
+	$this->initQuery($args, "REPORT", $url);
+	$args['Body'] = sprintf(PHPSVN_LOGS_REQUEST, $vini, $vend);
+	$args['Headers']['Content-Length'] = strlen($args['Body']);
+	$args['Headers']['Depth'] = 1;
 
-        if (!$this->Request($args, $headers, $body))
-            return false;
+	if (!$this->Request($args, $headers, $body))
+	    return false;
 
-        $xml2Array = new xml2Array();
-        $arrOutput = $xml2Array->xmlParse($body);
-        array_shift($arrOutput['children']);
+	$xml2Array = new xml2Array();
+	$arrOutput = $xml2Array->xmlParse($body);
+	array_shift($arrOutput['children']);
 
-        foreach ($arrOutput['children'] as $value) {
-            $array = array();
-            foreach ($value['children'] as $entry) {
-                if ($entry['name'] == 'D:VERSION-NAME')
-                    $array['version'] = $entry['tagData'];
-                if ($entry['name'] == 'D:CREATOR-DISPLAYNAME')
-                    $array['author'] = $entry['tagData'];
-                if ($entry['name'] == 'S:DATE')
-                    $array['date'] = $entry['tagData'];
-                if ($entry['name'] == 'D:COMMENT')
-                    $array['comment'] = $entry['tagData'];
+	foreach ($arrOutput['children'] as $value) {
+	    $array = array();
+	    foreach ($value['children'] as $entry) {
+		if ($entry['name'] == 'D:VERSION-NAME')
+		    $array['version'] = $entry['tagData'];
+		if ($entry['name'] == 'D:CREATOR-DISPLAYNAME')
+		    $array['author'] = $entry['tagData'];
+		if ($entry['name'] == 'S:DATE')
+		    $array['date'] = $entry['tagData'];
+		if ($entry['name'] == 'D:COMMENT')
+		    $array['comment'] = $entry['tagData'];
 
-                if (($entry['name'] == 'S:ADDED-PATH') ||
-                        ($entry['name'] == 'S:MODIFIED-PATH') ||
-                        ($entry['name'] == 'S:DELETED-PATH')) {
-                    // For backward compatability
-                    $array['files'][] = $entry['tagData'];
+		if (($entry['name'] == 'S:ADDED-PATH') ||
+			($entry['name'] == 'S:MODIFIED-PATH') ||
+			($entry['name'] == 'S:DELETED-PATH')) {
+		    // For backward compatability
+		    $array['files'][] = $entry['tagData'];
 
-                    if ($entry['name'] == 'S:ADDED-PATH')
-                        $array['add_files'][] = $entry['tagData'];
-                    if ($entry['name'] == 'S:MODIFIED-PATH')
-                        $array['mod_files'][] = $entry['tagData'];
-                    if ($entry['name'] == 'S:DELETED-PATH')
-                        $array['del_files'][] = $entry['tagData'];
-                }
-            }
-            array_push($fileLogs, $array);
-        }
+		    if ($entry['name'] == 'S:ADDED-PATH')
+			$array['add_files'][] = $entry['tagData'];
+		    if ($entry['name'] == 'S:MODIFIED-PATH')
+			$array['mod_files'][] = $entry['tagData'];
+		    if ($entry['name'] == 'S:DELETED-PATH')
+			$array['del_files'][] = $entry['tagData'];
+		}
+	    }
+	    array_push($fileLogs, $array);
+	}
 
-        return $fileLogs;
+	return $fileLogs;
     }
 
     /**
@@ -392,45 +392,45 @@ class phpsvnclient {
      *  @access public
      */
     public function getVersion() {
-        if ($this->_repVersion > 0)
-            return $this->_repVersion;
+	if ($this->_repVersion > 0)
+	    return $this->_repVersion;
 
-        $this->_repVersion = -1;
-        $this->initQuery($args, "PROPFIND", $this->cleanURL($this->_url . "/!svn/vcc/default"));
-        $args['Body'] = PHPSVN_VERSION_REQUEST;
-        $args['Headers']['Content-Length'] = strlen(PHPSVN_NORMAL_REQUEST);
-        $args['Headers']['Depth'] = 0;
+	$this->_repVersion = -1;
+	$this->initQuery($args, "PROPFIND", $this->cleanURL($this->_url . "/!svn/vcc/default"));
+	$args['Body'] = PHPSVN_VERSION_REQUEST;
+	$args['Headers']['Content-Length'] = strlen(PHPSVN_NORMAL_REQUEST);
+	$args['Headers']['Depth'] = 0;
 
-        if (!$this->Request($args, $tmp, $body)) {
-            return $this->_repVersion;
-        }
+	if (!$this->Request($args, $tmp, $body)) {
+	    return $this->_repVersion;
+	}
 
-        $parser = new xml_parser_class;
-        $parser->Parse($body, true);
-        $enable = false;
-        foreach ($parser->structure as $value) {
-            if ($enable) {
-                $t = explode("/", $value);
+	$parser = new xml_parser_class;
+	$parser->Parse($body, true);
+	$enable = false;
+	foreach ($parser->structure as $value) {
+	    if ($enable) {
+		$t = explode("/", $value);
 
-                // start from the end and move backwards until we find a non-blank entry
-                $index = count($t) - 1;
-                while ($t[$index] == "") {
-                    $index--;
-                }
+		// start from the end and move backwards until we find a non-blank entry
+		$index = count($t) - 1;
+		while ($t[$index] == "") {
+		    $index--;
+		}
 
-                // check the last non-empty element to see if it's numeric. If so, it's the revision number
-                if (is_numeric($t[$index])) {
-                    $this->_repVersion = $t[$index];
-                    break;
-                } else {
-                    $enable = false;
-                    continue;
-                }
-            }
-            if (is_array($value) && $value['Tag'] == 'D:href')
-                $enable = true;
-        }
-        return $this->_repVersion;
+		// check the last non-empty element to see if it's numeric. If so, it's the revision number
+		if (is_numeric($t[$index])) {
+		    $this->_repVersion = $t[$index];
+		    break;
+		} else {
+		    $enable = false;
+		    continue;
+		}
+	    }
+	    if (is_array($value) && $value['Tag'] == 'D:href')
+		$enable = true;
+	}
+	return $this->_repVersion;
     }
 
     /**
@@ -446,14 +446,14 @@ class phpsvnclient {
      *  @access public
      */
     public function setRepository($url) {
-        $this->_url = $url;
+	$this->_url = $url;
     }
 
     /**
      *  Old method; there's a typo in the name. This is now a wrapper for setRepository
      */
     public function setRespository($url) {
-        return $this->setRepository($url);
+	return $this->setRepository($url);
     }
 
     /**
@@ -463,8 +463,8 @@ class phpsvnclient {
      *  @param string $pass Password
      */
     public function setAuth($user, $pass) {
-        $this->user = $user;
-        $this->pass = $pass;
+	$this->user = $user;
+	$this->pass = $pass;
     }
 
     /**
@@ -477,55 +477,55 @@ class phpsvnclient {
      *  @access private
      */
     private function storeDirectoryFiles($item, $key) {
-        if ($key == 'name') {
-            if (($item == 'D:HREF') ||
-                    ($item == 'LP1:GETLASTMODIFIED') ||
-                    ($item == 'LP2:BASELINE-RELATIVE-PATH') ||
-                    ($item == 'LP3:BASELINE-RELATIVE-PATH') ||
-                    ($item == 'D:STATUS')) {
-                $this->lastDirectoryFiles = $item;
-            }
-        } elseif (($key == 'tagData') && ($this->lastDirectoryFiles != '')) {
+	if ($key == 'name') {
+	    if (($item == 'D:HREF') ||
+		    ($item == 'LP1:GETLASTMODIFIED') ||
+		    ($item == 'LP2:BASELINE-RELATIVE-PATH') ||
+		    ($item == 'LP3:BASELINE-RELATIVE-PATH') ||
+		    ($item == 'D:STATUS')) {
+		$this->lastDirectoryFiles = $item;
+	    }
+	} elseif (($key == 'tagData') && ($this->lastDirectoryFiles != '')) {
 
-            // Unsure if the 1st of two D:HREF's always returns the result we want, but for now...
-            if (($this->lastDirectoryFiles == 'D:HREF') && (isset($this->storeDirectoryFiles['type'])))
-                return;
+	    // Unsure if the 1st of two D:HREF's always returns the result we want, but for now...
+	    if (($this->lastDirectoryFiles == 'D:HREF') && (isset($this->storeDirectoryFiles['type'])))
+		return;
 
-            // Dump into the array 
-            switch ($this->lastDirectoryFiles) {
-                case 'D:HREF':
-                    $var = 'type';
-                    break;
-                case 'LP1:GETLASTMODIFIED':
-                    $var = 'last-mod';
-                    break;
-                case 'LP2:BASELINE-RELATIVE-PATH':
-                case 'LP3:BASELINE-RELATIVE-PATH':
-                    $var = 'path';
-                    break;
-                case 'D:STATUS':
-                    $var = 'status';
-                    break;
-            }
-            $this->storeDirectoryFiles[$var] = $item;
-            $this->lastDirectoryFiles = '';
+	    // Dump into the array 
+	    switch ($this->lastDirectoryFiles) {
+		case 'D:HREF':
+		    $var = 'type';
+		    break;
+		case 'LP1:GETLASTMODIFIED':
+		    $var = 'last-mod';
+		    break;
+		case 'LP2:BASELINE-RELATIVE-PATH':
+		case 'LP3:BASELINE-RELATIVE-PATH':
+		    $var = 'path';
+		    break;
+		case 'D:STATUS':
+		    $var = 'status';
+		    break;
+	    }
+	    $this->storeDirectoryFiles[$var] = $item;
+	    $this->lastDirectoryFiles = '';
 
-            // Detect 'type' as either a 'directory' or 'file'
-            if ((isset($this->storeDirectoryFiles['type'])) &&
-                    (isset($this->storeDirectoryFiles['last-mod'])) &&
-                    (isset($this->storeDirectoryFiles['path'])) &&
-                    (isset($this->storeDirectoryFiles['status']))) {
-                $this->storeDirectoryFiles['path'] = str_replace(' ', '%20', $this->storeDirectoryFiles['path']); //Hack to make filenames with spaces work.
-                $len = strlen($this->storeDirectoryFiles['path']);
-                if (substr($this->storeDirectoryFiles['type'], strlen($this->storeDirectoryFiles['type']) - $len) == $this->storeDirectoryFiles['path']) {
-                    $this->storeDirectoryFiles['type'] = 'file';
-                } else {
-                    $this->storeDirectoryFiles['type'] = 'directory';
-                }
-            }
-        } else {
-            $this->lastDirectoryFiles = '';
-        }
+	    // Detect 'type' as either a 'directory' or 'file'
+	    if ((isset($this->storeDirectoryFiles['type'])) &&
+		    (isset($this->storeDirectoryFiles['last-mod'])) &&
+		    (isset($this->storeDirectoryFiles['path'])) &&
+		    (isset($this->storeDirectoryFiles['status']))) {
+		$this->storeDirectoryFiles['path'] = str_replace(' ', '%20', $this->storeDirectoryFiles['path']); //Hack to make filenames with spaces work.
+		$len = strlen($this->storeDirectoryFiles['path']);
+		if (substr($this->storeDirectoryFiles['type'], strlen($this->storeDirectoryFiles['type']) - $len) == $this->storeDirectoryFiles['path']) {
+		    $this->storeDirectoryFiles['type'] = 'file';
+		} else {
+		    $this->storeDirectoryFiles['type'] = 'directory';
+		}
+	    }
+	} else {
+	    $this->lastDirectoryFiles = '';
+	}
     }
 
     /**
@@ -537,14 +537,14 @@ class phpsvnclient {
      *  @access private
      */
     private function initQuery(&$arguments, $method, $url) {
-        $http = & $this->_http;
-        $http->GetRequestArguments($url, $arguments);
-        if (isset($this->user) && isset($this->pass)) {
-            $arguments["Headers"]["Authorization"] = " Basic " . base64_encode($this->user . ":" . $this->pass);
-        }
-        $arguments["RequestMethod"] = $method;
-        $arguments["Headers"]["Content-Type"] = "text/xml";
-        $arguments["Headers"]["Depth"] = 1;
+	$http = & $this->_http;
+	$http->GetRequestArguments($url, $arguments);
+	if (isset($this->user) && isset($this->pass)) {
+	    $arguments["Headers"]["Authorization"] = " Basic " . base64_encode($this->user . ":" . $this->pass);
+	}
+	$arguments["RequestMethod"] = $method;
+	$arguments["Headers"]["Content-Type"] = "text/xml";
+	$arguments["Headers"]["Depth"] = 1;
     }
 
     /**
@@ -558,36 +558,36 @@ class phpsvnclient {
      *  @access private
      */
     private function Request($args, &$headers, &$body) {
-        $args['RequestURI'] = str_replace(' ', '%20', $args['RequestURI']); //Hack to make filenames with spaces work.
-        $http = & $this->_http;
-        $http->Open($args);
-        $http->SendRequest($args);
-        $http->ReadReplyHeaders($headers);
-        if ($http->response_status[0] != 2) {
-            switch ($http->response_status) {
-                case 404:
-                    $this->errNro = NOT_FOUND;
-                    break;
-                case 401:
-                    $this->errNro = AUTH_REQUIRED;
-                    break;
-                default:
-                    $this->errNro = UNKNOWN_ERROR;
-            }
-            $http->close();
-            return false;
-        }
-        $this->errNro = NO_ERROR;
-        $body = '';
-        $tbody = '';
-        for (;;) {
-            $error = $http->ReadReplyBody($tbody, 1000);
-            if ($error != "" || strlen($tbody) == 0)
-                break;
-            $body.= ( $tbody);
-        }
-        $http->close();
-        return true;
+	$args['RequestURI'] = str_replace(' ', '%20', $args['RequestURI']); //Hack to make filenames with spaces work.
+	$http = & $this->_http;
+	$http->Open($args);
+	$http->SendRequest($args);
+	$http->ReadReplyHeaders($headers);
+	if ($http->response_status[0] != 2) {
+	    switch ($http->response_status) {
+		case 404:
+		    $this->errNro = NOT_FOUND;
+		    break;
+		case 401:
+		    $this->errNro = AUTH_REQUIRED;
+		    break;
+		default:
+		    $this->errNro = UNKNOWN_ERROR;
+	    }
+	    $http->close();
+	    return false;
+	}
+	$this->errNro = NO_ERROR;
+	$body = '';
+	$tbody = '';
+	for (;;) {
+	    $error = $http->ReadReplyBody($tbody, 1000);
+	    if ($error != "" || strlen($tbody) == 0)
+		break;
+	    $body.= ( $tbody);
+	}
+	$http->close();
+	return true;
     }
 
     /**
@@ -600,7 +600,7 @@ class phpsvnclient {
      *  @access private
      */
     private function cleanURL($url) {
-        return preg_replace("/((^:)\/\/)/", "//", $url);
+	return preg_replace("/((^:)\/\/)/", "//", $url);
     }
 
 }
