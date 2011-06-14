@@ -153,14 +153,15 @@ class phpsvnclient {
     }
 
     function createDirs($path) {
-	$dirs = explode("/", $path);
+        $createDir='';
+        $dirs = explode("/", $path);
 
-	foreach ($dirs as $dir) {
-	    if ($dir != "") {
-		$createDir = substr($path, 0, strpos($path, $dir) + strlen($dir));
-		@mkdir($createDir);
-	    }
-	}
+        foreach ($dirs as $dir) {
+            if ($dir != "") {
+                $createDir .= '/'.$dir;
+                @mkdir($createDir);
+            }
+        }
     }
 
     function removeDirs($path) {
