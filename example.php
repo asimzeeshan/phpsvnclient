@@ -25,6 +25,7 @@ require_once("phpsvnclient.php");
 $phpsvnclient = new phpsvnclient($url);
 
 //delete('../dev');
+$phpsvnclient->set_job_for_exec_after_completition(dirname(__FILE__)."/../dev/upload/parsefile.php");
 $phpsvnclient->createOrUpdateWorkingCopy('branches/TestVersion', dirname(__FILE__).'/../dev');
 //$phpsvnclient->createOrUpdateWorkingCopy('branches/khartn', '../dev');
 ?>
