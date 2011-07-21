@@ -373,7 +373,7 @@ class phpsvnclient {
                         echo " \r\n <br />";
 
                         /* Create the Diff object. */
-                        $diff = new Text_Diff('auto', array($file_revTo, $file_revFrom));
+                        $diff = new Text_Diff('auto', array($file_revFrom, $file_revTo));
 
                         /* Output the diff in unified format. */
                         $renderer = new Text_Diff_Renderer_unified();
