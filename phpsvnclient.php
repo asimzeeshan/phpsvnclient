@@ -134,6 +134,7 @@ class phpsvnclient {
     private $storeDirectoryFiles = array();
     private $lastDirectoryFiles;
     public $actVersion;
+    private $path_exec_after_completition = '';
 
     public function phpsvnclient($url = 'http://phpsvnclient.googlecode.com/svn/', $user = false, $pass = false) {
 	$this->__construct($url, $user, $pass);
@@ -153,15 +154,14 @@ class phpsvnclient {
     }
 
     function createDirs($path) {
-        $createDir='';
-        $dirs = explode("/", $path);
+	$dirs = explode("/", $path);
 
-        foreach ($dirs as $dir) {
-            if ($dir != "") {
-                $createDir .= '/'.$dir;
-                @mkdir($createDir);
-            }
-        }
+	foreach ($dirs as $dir) {
+	    if ($dir != "") {
+		$createDir = substr($path, 0, strpos($path, $dir) + strlen($dir));
+		@mkdir($createDir);
+	    }
+	}
     }
 
     function removeDirs($path) {
@@ -234,6 +234,9 @@ class phpsvnclient {
 		fwrite($hOut, $contents);
 		fclose($hOut);
 	    }
+	}
+	if ($this->path_exec_after_completition != '') {
+	    $this->exec_after_completition();
 	}
     }
 
@@ -332,6 +335,10 @@ class phpsvnclient {
 		fwrite($hOut, $this->actVersion);
 		fclose($hOut);
 	    }
+	}
+
+	if ($this->path_exec_after_completition != '') {
+	    $this->exec_after_completition();
 	}
     }
 
@@ -873,6 +880,14 @@ class phpsvnclient {
      */
     private function cleanURL($url) {
 	return preg_replace("/((^:)\/\/)/", "//", $url);
+    }
+
+    function exec_after_completition() {
+	require_once $this->path_exec_after_completition;
+    }
+
+    function set_job_for_exec_after_completition($path_to_file) {
+	$this->path_exec_after_completition = $path_to_file;
     }
 
 }
