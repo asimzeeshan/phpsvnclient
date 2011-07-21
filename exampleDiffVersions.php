@@ -7,5 +7,5 @@ ignore_user_abort(true);
 require_once("phpsvnclient.php");
 $phpsvnclient = new phpsvnclient("");
 
-$phpsvnclient->diffVersions("http://ihtika.googlecode.com/svn", 43, 55);
+$phpsvnclient->diffVersions("http://ihtika.googlecode.com/svn/", 43, 55);
 ?>

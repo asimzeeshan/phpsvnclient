@@ -346,7 +346,7 @@ class phpsvnclient {
 
 
 	//Get a list of objects to be updated.
-	$objects_list = $this->getLogsForUpdate($path, $revFrom, $revTo);
+	$objects_list = $this->getLogsForUpdate($path, $revFrom, $revTo, false);
 	if (!is_null($objects_list)) {
 	    foreach ($objects_list['files'] as $file) {
 		if ($file != '') {
@@ -557,15 +557,16 @@ class phpsvnclient {
 	return $fileLogs;
     }
 
-    public function getLogsForUpdate($file, $vini=0, $vend=-1) {
+    public function getLogsForUpdate($file, $vini=0, $vend=-1, $checkvend=true) {
 	$fileLogs = array();
 
-	if ($vend == -1 || $vend > $this->actVersion) {
+	if (($vend == -1 || $vend > $this->actVersion) && $checkvend) {
 	    $vend = $this->actVersion;
 	}
 
 	if ($vini < 0)
 	    $vini = 0;
+
 	if ($vini > $vend) {
 	    $vini = $vend;
 	    echo "Nothing updated";
@@ -579,6 +580,7 @@ class phpsvnclient {
 	$args['Headers']['Content-Length'] = strlen($args['Body']);
 	$args['Headers']['Depth'] = 1;
 
+	print_r($body);
 	if (!$this->Request($args, $headers, $body)) {
 	    echo "ERROR in request";
 	    return false;
