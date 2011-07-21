@@ -1,5 +1,5 @@
+#!/usr/bin/php
 <?php
-
 /**
  * Text_Diff example script.
  *
@@ -8,12 +8,16 @@
  *
  * @package Text_Diff
  */
+
 require_once 'Text/Diff.php';
 require_once 'Text/Diff/Renderer.php';
 require_once 'Text/Diff/Renderer/unified.php';
 
-$argv[1] = 'phpsvnclient-105.php';
-$argv[2] = 'phpsvnclient-107.php';
+/* Make sure we have enough arguments. */
+if (count($argv) < 3) {
+    echo "Usage: diff.php <file1> <file2>\n\n";
+    exit;
+}
 
 /* Make sure both files exist. */
 if (!is_readable($argv[1])) {
@@ -25,7 +29,6 @@ if (!is_readable($argv[2])) {
 
 /* Load the lines of each file. */
 $lines1 = file($argv[1]);
-print_r($lines1);
 $lines2 = file($argv[2]);
 
 /* Create the Diff object. */
