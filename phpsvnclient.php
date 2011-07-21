@@ -342,6 +342,20 @@ class phpsvnclient {
 	}
     }
 
+    public function diffVersions($path = '', $revFrom=0, $revTo=0) {
+
+
+	//Get a list of objects to be updated.
+	$objects_list = $this->getLogsForUpdate($path, $revFrom, $revTo);
+	if (!is_null($objects_list)) {
+	    foreach ($objects_list['files'] as $file) {
+		if ($file != '') {
+		    echo $file;
+		}
+	    }
+	}
+    }
+
     /**
      *  rawDirectoryDump
      *
