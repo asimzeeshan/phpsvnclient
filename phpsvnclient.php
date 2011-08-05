@@ -6,36 +6,7 @@
  *   cesar@sixdegrees.com.br                                               *
  *   "Working with freedom"                                                *
  *   http://www.sixdegrees.com.br                                          *
- *                                                                         *
- *   Modified by Ethan Smith (ethan@3thirty.net), April 2008               *
- *      - Added support for non-standard port numbers (rewrote cleanURL)   *
- *      - getFileLogs will now include an array of files, if multiple      *
- *        have been modified files are                                     *
- *      - added setRepository method, to fix mis-spelling of old           *
- *        setRespository method                                            *
- *      - various bugfixes (out by one error on getFileLogs)               *
- *                                                                         *
- *   Modified by Ethan Smith (ethan@3thirty.net), June 23 2008             *
- *      - Removed references to storeFileLogs as a member variable - it's  *
- *        now a local variable within getFileLogs() called $fileLogs       * 
- *      - getFile() now checks if you are requesting a directory, and      *
- *         will return false if you are.                                   *
- *      - Added a new parameter to run getDirectoryTree non- recursively   *
- *                                                                         *
- *   Modified by Per Soderlind (per@soderlind.no), August 13 2008          *
- *      - Added support for LP2:BASELINE-RELATIVE-PATH in                  *
- *        storeDirectoryFiles()                                            *
- *      - In storeDirectoryFiles(), changed if{} elseif {} to switch {}    *
- *        since it's faster :)                                             *
- *                                                                         *
- *   Modified by Dmitrii Shevchenko (dmitrii.shevchenko@gmail.com),        * 
- *                                                 August 17 2008          *
- *      - minor change to getDirectoryTree() function                      *
- *      - added checkOut() function                                        *
- *                                                                         *
- *   Modified by Rasmus Berg Palm (rasmusbergpalm@gmail.com),              *
- *                                                 28 October 2009         *
- *       - Fixed 404 error in request() when RequestURI had whitespaces    *  
+ *                                                                         *  
  *                                                                         *
  *                                                                         *
  *   Permission is hereby granted, free of charge, to any person obtaining *
@@ -135,6 +106,7 @@ class phpsvnclient {
     private $lastDirectoryFiles;
     public $actVersion;
     private $path_exec_after_completition = '';
+    private $mime_array;
 
     public function phpsvnclient($url = 'http://phpsvnclient.googlecode.com/svn/', $user = false, $pass = false) {
 	$this->__construct($url, $user, $pass);
@@ -342,6 +314,89 @@ class phpsvnclient {
 	}
     }
 
+    public function diffVersions($path = '', $revFrom=0, $revTo=0) {
+	
+	require_once 'ext/Diff/Diff.php';
+	require_once 'ext/Diff/Renderer.php';
+	require_once 'ext/Diff/Renderer/unified.php';
+
+	$this->mime_array = $this->get_mime_array();
+
+	//Get a list of objects to be updated.
+	$objects_list = $this->getLogsForUpdate($path, $revFrom, $revTo, false);
+	if (!is_null($objects_list)) {
+//            print_r($objects_list);
+	    foreach ($objects_list['files'] as $file) {
+		if ($file != '') {
+
+		    $path_info = pathinfo($file);
+		    $mime_type = $this->mime_array[$path_info['extension']];
+
+		    if (strpos($mime_type, "text") !== false) {
+
+			$file_revFrom = $this->getFile($file, $revFrom);
+			$file_revFrom =
+				$this->explodeX(array("\r\n", "\r", "\n"), $file_revFrom);
+
+			$file_revTo = $this->getFile($file, $revTo);
+			$file_revTo = $this->explodeX(array("\r\n", "\r", "\n"), $file_revTo);
+
+
+			/* Create the Diff object. */
+			$diff = new Text_Diff('auto', array($file_revFrom, $file_revTo));
+
+			/* Output the diff in unified format. */
+			$renderer = new Text_Diff_Renderer_unified();
+			$result = $renderer->render($diff);
+			if (strlen($result) > 1) {
+//			    echo " \r\n <br />" . $file;
+//			    echo " - " . $mime_type . " \r\n <br /> ";
+			    echo "Index: " . $file . " \r\n";
+			    echo "===================================================================" . " \r\n";
+			    echo "--- " . $file . "	(revision " . $revFrom . ")" . " \r\n";
+			    echo "+++ " . $file . "	(revision " . $revTo . ")" . " \r\n";
+			    echo $renderer->render($diff) . " \r\n";
+			}
+		    }
+		}
+	    }
+	    foreach ($objects_list['filesDelete'] as $file) {
+		if ($file != '') {
+
+		    $path_info = pathinfo($file);
+		    $mime_type = $this->mime_array[$path_info['extension']];
+
+		    if (strpos($mime_type, "text") !== false) {
+
+			$file_revFrom = $this->getFile($file, $revFrom);
+			$file_revFrom =
+				$this->explodeX(array("\r\n", "\r", "\n"), $file_revFrom);
+
+			$file_revTo = $this->getFile($file, $revTo);
+			$file_revTo = $this->explodeX(array("\r\n", "\r", "\n"), $file_revTo);
+
+
+			/* Create the Diff object. */
+			$diff = new Text_Diff('auto', array($file_revFrom, $file_revTo));
+
+			/* Output the diff in unified format. */
+			$renderer = new Text_Diff_Renderer_unified();
+			$result = $renderer->render($diff);
+			if (strlen($result) > 1) {
+//			    echo " \r\n <br />" . $file;
+//			    echo " - " . $mime_type . " \r\n <br /> ";
+			    echo "Index: " . $file . " \r\n";
+			    echo "===================================================================" . " \r\n";
+			    echo "--- " . $file . "	(revision " . $revFrom . ")" . " \r\n";
+			    echo "+++ " . $file . "	(revision " . $revTo . ")" . " \r\n";
+			    echo $renderer->render($diff) . " \r\n";
+			}
+		    }
+		}
+	    }
+	}
+    }
+
     /**
      *  rawDirectoryDump
      *
@@ -543,15 +598,16 @@ class phpsvnclient {
 	return $fileLogs;
     }
 
-    public function getLogsForUpdate($file, $vini=0, $vend=-1) {
+    public function getLogsForUpdate($file, $vini=0, $vend=-1, $checkvend=true) {
 	$fileLogs = array();
 
-	if ($vend == -1 || $vend > $this->actVersion) {
+	if (($vend == -1 || $vend > $this->actVersion) && $checkvend) {
 	    $vend = $this->actVersion;
 	}
 
 	if ($vini < 0)
 	    $vini = 0;
+
 	if ($vini > $vend) {
 	    $vini = $vend;
 	    echo "Nothing updated";
@@ -565,6 +621,13 @@ class phpsvnclient {
 	$args['Headers']['Content-Length'] = strlen($args['Body']);
 	$args['Headers']['Depth'] = 1;
 
+//	print_r($args);
+//        echo "\r\n <br />";
+//	print_r($args);
+//        echo "\r\n <br />";
+//	print_r($headers);
+//        echo "\r\n <br />";
+//	print_r($body);
 	if (!$this->Request($args, $headers, $body)) {
 	    echo "ERROR in request";
 	    return false;
@@ -888,6 +951,39 @@ class phpsvnclient {
 
     function set_job_for_exec_after_completition($path_to_file) {
 	$this->path_exec_after_completition = $path_to_file;
+    }
+
+    function get_mime_array() {
+	$regex = "/([\w\+\-\.\/]+)\t+([\w\s]+)/i";
+	$lines = file("ext/mime/mime.types", FILE_IGNORE_NEW_LINES);
+	foreach ($lines as $line) {
+	    if (substr($line, 0, 1) == '#')
+		continue; // skip comments 
+	    if (!preg_match($regex, $line, $matches))
+		continue; // skip mime types w/o any extensions 
+	    $mime = $matches[1];
+	    $extensions = explode(" ", $matches[2]);
+	    foreach ($extensions as $ext)
+		$mimeArray[trim($ext)] = $mime;
+	}
+	return ($mimeArray);
+    }
+
+    function explodeX($delimiters, $string) {
+	$return_array = Array($string); // The array to return
+	$d_count = 0;
+	while (isset($delimiters[$d_count])) { // Loop to loop through all delimiters
+	    $new_return_array = Array();
+	    foreach ($return_array as $el_to_split) { // Explode all returned elements by the next delimiter
+		$put_in_new_return_array = explode($delimiters[$d_count], $el_to_split);
+		foreach ($put_in_new_return_array as $substr) { // Put all the exploded elements in array to return
+		    $new_return_array[] = $substr;
+		}
+	    }
+	    $return_array = $new_return_array; // Replace the previous return array by the next version
+	    $d_count++;
+	}
+	return $return_array; // Return the exploded elements
     }
 
 }
