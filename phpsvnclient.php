@@ -106,10 +106,26 @@ class phpsvnclient {
      *  @var integer
      */
     public $errNro;
+
+    /**
+     * Number of actual revision local repository.
+     * @var Integer, Long
+     */
     private $actVersion;
     private $storeDirectoryFiles = array();
     private $lastDirectoryFiles;
+
+    /**
+     * The path to the file to perform after update procedure 
+     * or checkout of a local repository.
+     * @var String
+     */
     private $path_exec_after_completition = '';
+
+    /**
+     * Array with MIME types.
+     * @var Array
+     */
     private $mime_array;
 
     public function phpsvnclient($url = 'http://phpsvnclient.googlecode.com/svn/', $user = false, $pass = false) {
@@ -129,6 +145,10 @@ class phpsvnclient {
         $this->actVersion = $this->getVersion();
     }
 
+    /**
+     * Function for creating directories.
+     * @param type $path The path to the directory that will be created.
+     */
     function createDirs($path) {
         $dirs = explode("/", $path);
 
@@ -140,6 +160,11 @@ class phpsvnclient {
         }
     }
 
+    /**
+     * Function for the recursive removal of directories.
+     * @param type $path The path to the directory to be deleted.
+     * @return type Returns the status of a function or function rmdir unlink.
+     */
     function removeDirs($path) {
         if (is_dir($path)) {
             $entries = scandir($path);
@@ -157,6 +182,10 @@ class phpsvnclient {
         }
     }
 
+    /**
+     * Function for logging.
+     * @param type $contents The line for entry in the log file.
+     */
     function logging($contents) {
         $hOut = fopen(LOG_FILE, 'a+');
         fwrite($hOut, $contents);
@@ -318,6 +347,12 @@ class phpsvnclient {
         }
     }
 
+    /**
+     * Function to view the changes between revisions of the specified object.
+     * @param type $path The path to the object (file or directory).
+     * @param type $revFrom Initial revision.
+     * @param type $revTo The final revision.
+     */
     public function diffVersions($path = '', $revFrom=0, $revTo=0) {
 
         require_once 'ext/Diff/Diff.php';
@@ -353,8 +388,6 @@ class phpsvnclient {
                         $renderer = new Text_Diff_Renderer_unified();
                         $result = $renderer->render($diff);
                         if (strlen($result) > 1) {
-//			    echo " \r\n <br />" . $file;
-//			    echo " - " . $mime_type . " \r\n <br /> ";
                             echo "Index: " . $file . " \r\n";
                             echo "===================================================================" . " \r\n";
                             echo "--- " . $file . "	(revision " . $revFrom . ")" . " \r\n";
@@ -387,8 +420,6 @@ class phpsvnclient {
                         $renderer = new Text_Diff_Renderer_unified();
                         $result = $renderer->render($diff);
                         if (strlen($result) > 1) {
-//			    echo " \r\n <br />" . $file;
-//			    echo " - " . $mime_type . " \r\n <br /> ";
                             echo "Index: " . $file . " \r\n";
                             echo "===================================================================" . " \r\n";
                             echo "--- " . $file . "	(revision " . $revFrom . ")" . " \r\n";
@@ -625,13 +656,6 @@ class phpsvnclient {
         $args['Headers']['Content-Length'] = strlen($args['Body']);
         $args['Headers']['Depth'] = 1;
 
-//	print_r($args);
-//        echo "\r\n <br />";
-//	print_r($args);
-//        echo "\r\n <br />";
-//	print_r($headers);
-//        echo "\r\n <br />";
-//	print_r($body);
         if (!$this->Request($args, $headers, $body)) {
             echo "ERROR in request";
             return false;
@@ -639,7 +663,6 @@ class phpsvnclient {
 
         $xml2Array = new xml2Array();
         $arrOutput = $xml2Array->xmlParse($body);
-        //print_r($body);
 
         $array = array();
         foreach ($arrOutput['children'] as $value) {
@@ -662,9 +685,6 @@ class phpsvnclient {
         $dirsDelete = "";
 
         foreach ($array['objects'] as $objects) {
-//            echo "\r\n";
-//            print_r($objects);
-//            echo "************************************************\r\n";
             if ($objects['type'] == "file") {
                 if ($objects['action'] == "S:ADDED-PATH" || $objects['action'] == "S:MODIFIED-PATH") {
                     $file = $objects['object_name'] . "/*+++*/";
@@ -710,24 +730,15 @@ class phpsvnclient {
                 }
             }
         }
-//        echo $files . "\r\n";
-//        echo $filesDelete . "\r\n";
-//        echo $dirs . "\r\n";
-//        echo $dirsDelete . "\r\n";
         $files = explode("/*+++*/", $files);
         $filesDelete = explode("/*+++*/", $filesDelete);
         $dirs = explode("/*+++*/", $dirs);
         $dirsDelete = explode("/*+++*/", $dirsDelete);
-//        print_r($files);
-//        print_r($filesDelete);
-//        print_r($dirs);
-//        print_r($dirsDelete);
         $out = array();
         $out['files'] = $files;
         $out['filesDelete'] = $filesDelete;
         $out['dirs'] = $dirs;
         $out['dirsDelete'] = $dirsDelete;
-        //print_r($out);
         return $out;
     }
 
