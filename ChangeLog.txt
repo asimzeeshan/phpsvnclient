@@ -1,3 +1,8 @@
+Modified by Arthur Khusnutdinov (forpdfsending@gmail.com), July-August 2011
+   - Implemented new functionality to form a diff between revisions in the repository
+   - Code cleanup
+   - Revision history moved from the phpsvnclient.php to the file ChangeLog.txt
+
 Modified by Arthur Khusnutdinov (forpdfsending@gmail.com), July 2011
    - Implemented functional run the necessary script at the end of the 
  functional checkout and svnupdate. It may be useful for automating the 
