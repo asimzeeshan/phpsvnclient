@@ -6,36 +6,7 @@
  *   cesar@sixdegrees.com.br                                               *
  *   "Working with freedom"                                                *
  *   http://www.sixdegrees.com.br                                          *
- *                                                                         *
- *   Modified by Ethan Smith (ethan@3thirty.net), April 2008               *
- *      - Added support for non-standard port numbers (rewrote cleanURL)   *
- *      - getFileLogs will now include an array of files, if multiple      *
- *        have been modified files are                                     *
- *      - added setRepository method, to fix mis-spelling of old           *
- *        setRespository method                                            *
- *      - various bugfixes (out by one error on getFileLogs)               *
- *                                                                         *
- *   Modified by Ethan Smith (ethan@3thirty.net), June 23 2008             *
- *      - Removed references to storeFileLogs as a member variable - it's  *
- *        now a local variable within getFileLogs() called $fileLogs       * 
- *      - getFile() now checks if you are requesting a directory, and      *
- *         will return false if you are.                                   *
- *      - Added a new parameter to run getDirectoryTree non- recursively   *
- *                                                                         *
- *   Modified by Per Soderlind (per@soderlind.no), August 13 2008          *
- *      - Added support for LP2:BASELINE-RELATIVE-PATH in                  *
- *        storeDirectoryFiles()                                            *
- *      - In storeDirectoryFiles(), changed if{} elseif {} to switch {}    *
- *        since it's faster :)                                             *
- *                                                                         *
- *   Modified by Dmitrii Shevchenko (dmitrii.shevchenko@gmail.com),        * 
- *                                                 August 17 2008          *
- *      - minor change to getDirectoryTree() function                      *
- *      - added checkOut() function                                        *
- *                                                                         *
- *   Modified by Rasmus Berg Palm (rasmusbergpalm@gmail.com),              *
- *                                                 28 October 2009         *
- *       - Fixed 404 error in request() when RequestURI had whitespaces    *  
+ *                                                                         *  
  *                                                                         *
  *                                                                         *
  *   Permission is hereby granted, free of charge, to any person obtaining *
@@ -984,7 +955,7 @@ class phpsvnclient {
 
     function get_mime_array() {
 	$regex = "/([\w\+\-\.\/]+)\t+([\w\s]+)/i";
-	$lines = file("mime.types", FILE_IGNORE_NEW_LINES);
+	$lines = file("ext/mime/mime.types", FILE_IGNORE_NEW_LINES);
 	foreach ($lines as $line) {
 	    if (substr($line, 0, 1) == '#')
 		continue; // skip comments 
