@@ -21,10 +21,10 @@ function delete($arg) {
 $url = 'http://myprivatesite.googlecode.com/svn/';
 //$url = 'http://phpsvnclient.googlecode.com/svn/';
 
-require_once("phpsvnclient.php");
+require_once("../phpsvnclient.php");
 $phpsvnclient = new phpsvnclient($url);
 
 //delete('../dev');
 //$phpsvnclient->set_job_for_exec_after_completition(dirname(__FILE__)."/../dev/upload/parsefile.php");
-$phpsvnclient->createOrUpdateWorkingCopy('branches/TestVersion', dirname(__FILE__).'/../dev');
+$phpsvnclient->createOrUpdateWorkingCopy('branches/TestVersion', dirname(__FILE__) . '/../dev');
 ?>

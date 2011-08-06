@@ -1,7 +1,9 @@
 Modified by Arthur Khusnutdinov (forpdfsending@gmail.com), July-August 2011
-   - Implemented new functionality to form a diff between revisions in the repository
+   - Implemented new functionality to form a diff between revisions 
+ in the repository
    - Code cleanup
    - Revision history moved from the phpsvnclient.php to the file ChangeLog.txt
+   - Fix for Issue 17: Version number not reset when changing repository URL
 
 Modified by Arthur Khusnutdinov (forpdfsending@gmail.com), July 2011
    - Implemented functional run the necessary script at the end of the 

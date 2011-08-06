@@ -804,6 +804,8 @@ class phpsvnclient {
      */
     public function setRepository($url) {
         $this->_url = $url;
+        $this->actVersion = 0;
+        $this->_repVersion = 0;
     }
 
     /**
