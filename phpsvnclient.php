@@ -114,6 +114,8 @@ class phpsvnclient {
     private $actVersion;
     private $storeDirectoryFiles = array();
     private $lastDirectoryFiles;
+    private $file_size;
+    private $file_size_founded = false;
 
     /**
      * The path to the file to perform after update procedure 
@@ -1009,6 +1011,42 @@ class phpsvnclient {
             $d_count++;
         }
         return $return_array; // Return the exploded elements
+    }
+
+    public function getFileSize($file='/', $version=-1) {
+
+        if ($version == -1 || $version > $this->actVersion) {
+            $version = $this->actVersion;
+        }
+        $url = $this->cleanURL($this->_url . "/!svn/bc/" . $version . "/" . $file . "/");
+        $this->initQuery($args, "PROPFIND", $url);
+        $args['Body'] = PHPSVN_GET_FILE_SIZE;
+        $args['Headers']['Content-Length'] = strlen(PHPSVN_GET_FILE_SIZE);
+
+        if (!$this->Request($args, $headers, $body)) {
+            return false;
+        }
+        $xml2Array = new xml2Array();
+        $arrOutput = $xml2Array->xmlParse($body);
+
+        if ($arrOutput) {
+            $files = array();
+            foreach ($arrOutput['children'] as $key => $value) {
+                array_walk_recursive($value, array($this, 'get_file_size_resursively'));
+            }
+            return $this->file_size;
+        }
+    }
+
+    private function get_file_size_resursively($item, $key) {
+        if ($key == 'name') {
+            if ($item == 'LP1:GETCONTENTLENGTH') {
+                $this->file_size_founded = true;
+            }
+        } elseif (($key == 'tagData') && $this->file_size_founded) {
+            $this->file_size = $item;
+            $this->file_size_founded = false;
+        }
     }
 
 }
