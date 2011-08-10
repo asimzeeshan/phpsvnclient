@@ -203,8 +203,11 @@ class phpsvnclient {
      * 
      * @param string $folder Defaults to disk root
      * @param string $outPath Defaults to current folder (.)
+     * @param boolean $checkFiles Whether it is necessary to check the received 
+     * files in the sizes. Can be useful in case often files are accepted 
+     * with an error.
      */
-    public function checkOut($folder = '/', $outPath = '.') {
+    public function checkOut($folder = '/', $outPath = '.', $checkFiles=false) {
         while ($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1) {
             $outPath = substr($outPath, 0, -1);
         }
@@ -224,15 +227,27 @@ class phpsvnclient {
                 flush();
                 mkdir($createPath);
             } elseif ($file['type'] == 'file') {
-                $contents = $this->getFile($path);
 
-                $outText = "<font color='blue'>Getting file: </font> ";
-                if (strlen($contents) < 1) {
-                    $outText.= "<font color='red'> " . $createPath . " with 0 size </font> ";
-                } else {
-                    $outText.= $createPath;
+                for ($x = 0; $x < 2; $x++) {
+                    $contents = $this->getFile($path);
+                    $outText .= "<font color='blue'>Getting file: </font> " . $path;
+                    $outText .= " <br />\r\n";
+                    if ($checkFiles) {
+                        $fileSize = $this->getFileSize($path);
+                        $outText.= " The size of the received file: " . strlen($contents) .
+                                " File size in a repository: " . $fileSize;
+                        $outText.= " <br />\r\n";
+
+                        if (strlen($contents) != $fileSize) {
+                            $outText.= "<font color='red'> Error receiving file: " . $createPath . "</font> --- " . $x;
+                        } else {
+                            break;
+                        }
+                        $outText.= " <br />\r\n";
+                    } else {
+                        break;
+                    }
                 }
-                $outText.= " <br />\r\n";
                 echo $outText;
                 $this->logging($outText);
                 flush();
@@ -251,8 +266,11 @@ class phpsvnclient {
      * Function to easily create and update a working copy of the repository.
      * @param type $folder Folder in remote repository
      * @param type $outPath Folder for storing files
+     * @param boolean $checkFiles Whether it is necessary to check the received 
+     * files in the sizes. Can be useful in case often files are accepted 
+     * with an error.
      */
-    public function createOrUpdateWorkingCopy($folder = '/', $outPath = '.') {
+    public function createOrUpdateWorkingCopy($folder = '/', $outPath = '.', $checkFiles=false) {
 
         if (!file_exists($outPath . '/.svn/entries')) {
             //Create a directory for storing system information for further updates.
@@ -264,7 +282,7 @@ class phpsvnclient {
             echo "Current status: <font color='blue'>Starting checkout...</font><br /> \r\n";
             $this->logging("Current status: <font color='blue'>Starting checkout...</font><br /> \r\n");
             flush();
-            $this->checkOut($folder, $outPath);
+            $this->checkOut($folder, $outPath, $checkFiles);
         } else {
             //Obtain the number of current version number of the local copy.
             $hOut = fopen($outPath . '/.svn/entries', 'r');
