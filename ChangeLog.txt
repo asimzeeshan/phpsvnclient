@@ -6,7 +6,7 @@ Modified by Arthur Khusnutdinov (forpdfsending@gmail.com), August 2011
  repository.
    - The logic of check of the size of the received file with the size of that 
  in a repository is implemented. If the sizes of files differ, 2 more additional
- attempts to download a file are undertaken. ()
+ attempts to download a file are undertaken. (Issue 15)
 
 Modified by Arthur Khusnutdinov (forpdfsending@gmail.com), July-August 2011
    - Implemented new functionality to form a diff between revisions 
