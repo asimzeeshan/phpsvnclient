@@ -778,6 +778,13 @@ class phpsvnclient {
         $args['Headers']['Content-Length'] = strlen(PHPSVN_NORMAL_REQUEST);
         $args['Headers']['Depth'] = 0;
 
+        //        echo $vini."\r\n";
+//        echo $vend."\r\n";
+        echo "Args: \r\n";
+        print_r($args);
+        echo "Headers: \r\n";
+        print_r($tmp);
+
         if (!$this->Request($args, $tmp, $body)) {
             return $this->_repVersion;
         }
@@ -824,8 +831,8 @@ class phpsvnclient {
      */
     public function setRepository($url) {
         $this->_url = $url;
-        $this->actVersion = 0;
         $this->_repVersion = 0;
+        $this->actVersion = $this->getVersion();
     }
 
     /**
