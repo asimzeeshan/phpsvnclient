@@ -32,7 +32,7 @@
  * **************************************************************************
  */
 define("PHPSVN_NORMAL_REQUEST", '<?xml version="1.0" encoding="utf-8"?><propfind xmlns="DAV:"><prop>
-<getlastmodified xmlns="DAV:"/><version-controlled-configuration xmlns="DAV:"/><resourcetype xmlns="DAV:"/><baseline-relative-path xmlns="http://subversion.tigris.org/xmlns/dav/"/><repository-uuid xmlns="http://subversion.tigris.org/xmlns/dav/"/></prop></propfind>');
+<getlastmodified xmlns="DAV:"/><checked-in xmlns="DAV:"/><version-name xmlns="DAV:"/><version-controlled-configuration xmlns="DAV:"/><resourcetype xmlns="DAV:"/><baseline-relative-path xmlns="http://subversion.tigris.org/xmlns/dav/"/><repository-uuid xmlns="http://subversion.tigris.org/xmlns/dav/"/></prop></propfind>');
 define("PHPSVN_VERSION_REQUEST", '<?xml version="1.0" encoding="utf-8"?><propfind xmlns="DAV:"><prop><checked-in xmlns="DAV:"/></prop></propfind>');
 define("PHPSVN_LOGS_REQUEST", '<?xml version="1.0" encoding="utf-8"?> <S:log-report xmlns:S="svn:"> <S:start-revision>%d</S:start-revision><S:end-revision>%d</S:end-revision><S:path></S:path><S:discover-changed-paths/></S:log-report>');
 
