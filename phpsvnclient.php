@@ -33,7 +33,7 @@ define("LOG_FILE", PHPSVN_DIR . time() . ".log.html");
 require_once PHPSVN_DIR . "/http.php";
 require_once PHPSVN_DIR . "/xml_parser.php"; // to be dropped?
 require_once PHPSVN_DIR . "/definitions.php";
-require_once PHPSVN_DIR . "/xml2Array.php";
+require_once PHPSVN_DIR .  "/xml2Array.php";
 
 /**
  *  PHP SVN CLIENT
@@ -207,7 +207,7 @@ class phpsvnclient {
      * files in the sizes. Can be useful in case often files are accepted 
      * with an error.
      */
-    public function checkOut($folder = '/', $outPath = '.', $checkFiles=false) {
+    public function checkOut($folder = '/', $outPath = '.', $checkFiles = false) {
         while ($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1) {
             $outPath = substr($outPath, 0, -1);
         }
@@ -270,7 +270,7 @@ class phpsvnclient {
      * files in the sizes. Can be useful in case often files are accepted 
      * with an error.
      */
-    public function createOrUpdateWorkingCopy($folder = '/', $outPath = '.', $checkFiles=false) {
+    public function createOrUpdateWorkingCopy($folder = '/', $outPath = '.', $checkFiles = false) {
 
         if (!file_exists($outPath . '/.svn/entries')) {
             //Create a directory for storing system information for further updates.
@@ -373,7 +373,7 @@ class phpsvnclient {
      * @param type $revFrom Initial revision.
      * @param type $revTo The final revision.
      */
-    public function diffVersions($path = '', $revFrom=0, $revTo=0) {
+    public function diffVersions($path = '', $revFrom = 0, $revTo = 0) {
 
         require_once 'ext/Diff/Diff.php';
         require_once 'ext/Diff/Renderer.php';
@@ -461,7 +461,7 @@ class phpsvnclient {
      *  @param integer $version Repository version, -1 means actual
      *  @return array SVN data dump.
      */
-    public function rawDirectoryDump($folder='/', $version=-1) {
+    public function rawDirectoryDump($folder = '/', $version = -1) {
 
         if ($version == -1 || $version > $this->actVersion) {
             $version = $this->actVersion;
@@ -488,7 +488,7 @@ class phpsvnclient {
      *  @param integer $version Repository version, -1 means actual
      *  @return array List of files.	 
      */
-    public function getDirectoryFiles($folder='/', $version=-1) {
+    public function getDirectoryFiles($folder = '/', $version = -1) {
         if ($arrOutput = $this->rawDirectoryDump($folder, $version)) {
             $files = array();
             foreach ($arrOutput['children'] as $key => $value) {
@@ -515,7 +515,7 @@ class phpsvnclient {
      *
      *  @return array List of files and directories.
      */
-    public function getDirectoryTree($folder='/', $version=-1, $recursive=true) {
+    public function getDirectoryTree($folder = '/', $version = -1, $recursive = true) {
         $directoryTree = array();
 
         if (!($arrOutput = $this->getDirectoryFiles($folder, $version)))
@@ -552,7 +552,7 @@ class phpsvnclient {
      *  @return	string	File content and information, false on error, or if a
      *  				directory is requested
      */
-    public function getFile($file, $version=-1) {
+    public function getFile($file, $version = -1) {
         if ($version == -1 || $version > $this->actVersion) {
             $version = $this->actVersion;
         }
@@ -583,7 +583,7 @@ class phpsvnclient {
      *  @param integer $vend End Version
      *  @return Array Respository Logs
      */
-    public function getRepositoryLogs($path="/", $vini=0, $vend=-1) {
+    public function getRepositoryLogs($path = "/", $vini = 0, $vend = -1) {
         return $this->getFileLogs($path, $vini, $vend);
     }
 
@@ -598,7 +598,7 @@ class phpsvnclient {
      *  @param integer $vend End Version
      *  @return array Respository Logs
      */
-    public function getFileLogs($file, $vini=0, $vend=-1) {
+    public function getFileLogs($file, $vini = 0, $vend = -1) {
         $fileLogs = array();
 
         if ($vend == -1 || $vend > $this->actVersion)
@@ -653,7 +653,7 @@ class phpsvnclient {
         return $fileLogs;
     }
 
-    public function getLogsForUpdate($file, $vini=0, $vend=-1, $checkvend=true) {
+    public function getLogsForUpdate($file, $vini = 0, $vend = -1, $checkvend = true) {
         $fileLogs = array();
 
         if (($vend == -1 || $vend > $this->actVersion) && $checkvend) {
@@ -866,6 +866,7 @@ class phpsvnclient {
         if ($key == 'name') {
             if (($item == 'D:HREF') ||
                     ($item == 'LP1:GETLASTMODIFIED') ||
+                    ($item == 'LP1:VERSION-NAME') ||
                     ($item == 'LP2:BASELINE-RELATIVE-PATH') ||
                     ($item == 'LP3:BASELINE-RELATIVE-PATH') ||
                     ($item == 'D:STATUS')) {
@@ -881,6 +882,9 @@ class phpsvnclient {
             switch ($this->lastDirectoryFiles) {
                 case 'D:HREF':
                     $var = 'type';
+                    break;
+				case 'LP1:VERSION-NAME':
+					$var = 'version';
                     break;
                 case 'LP1:GETLASTMODIFIED':
                     $var = 'last-mod';
@@ -959,7 +963,10 @@ class phpsvnclient {
                     break;
                 default:
                     $this->errNro = UNKNOWN_ERROR;
+                    break;
             }
+//            trigger_error("request to $args[RequestURI] failed: $http->response_status
+//Error: $http->error");
             $http->close();
             return false;
         }
@@ -968,10 +975,12 @@ class phpsvnclient {
         $tbody = '';
         for (;;) {
             $error = $http->ReadReplyBody($tbody, 1000);
-            if ($error != "" || strlen($tbody) == 0)
+            if ($error != "" || strlen($tbody) == 0) {
                 break;
+            }
             $body.= ( $tbody);
         }
+        //print_r($tbody);
         $http->close();
         return true;
     }
@@ -1038,7 +1047,7 @@ class phpsvnclient {
         return $return_array; // Return the exploded elements
     }
 
-    public function getFileSize($file='/', $version=-1) {
+    public function getFileSize($file = '/', $version = -1) {
 
         if ($version == -1 || $version > $this->actVersion) {
             $version = $this->actVersion;
