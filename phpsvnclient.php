@@ -7,8 +7,6 @@
  *   "Working with freedom"                                                *
  *   http://www.sixdegrees.com.br                                          *
  *                                                                         *  
- *                                                                         *
- *                                                                         *
  *   Permission is hereby granted, free of charge, to any person obtaining *
  *   a copy of this software and associated documentation files (the       *
  *   "Software"), to deal in the Software without restriction, including   *
@@ -35,7 +33,7 @@ define("LOG_FILE", PHPSVN_DIR . time() . ".log.html");
 require_once PHPSVN_DIR . "/http.php";
 require_once PHPSVN_DIR . "/xml_parser.php"; // to be dropped?
 require_once PHPSVN_DIR . "/definitions.php";
-require_once PHPSVN_DIR . "/xml2Array.php";
+require_once PHPSVN_DIR .  "/xml2Array.php";
 
 /**
  *  PHP SVN CLIENT
@@ -108,10 +106,28 @@ class phpsvnclient {
      *  @var integer
      */
     public $errNro;
+
+    /**
+     * Number of actual revision local repository.
+     * @var Integer, Long
+     */
+    private $actVersion;
     private $storeDirectoryFiles = array();
     private $lastDirectoryFiles;
-    public $actVersion;
+    private $file_size;
+    private $file_size_founded = false;
+
+    /**
+     * The path to the file to perform after update procedure 
+     * or checkout of a local repository.
+     * @var String
+     */
     private $path_exec_after_completition = '';
+
+    /**
+     * Array with MIME types.
+     * @var Array
+     */
     private $mime_array;
 
     public function phpsvnclient($url = 'http://phpsvnclient.googlecode.com/svn/', $user = false, $pass = false) {
@@ -131,6 +147,10 @@ class phpsvnclient {
         $this->actVersion = $this->getVersion();
     }
 
+    /**
+     * Function for creating directories.
+     * @param type $path The path to the directory that will be created.
+     */
     function createDirs($path) {
         $dirs = explode("/", $path);
 
@@ -142,6 +162,11 @@ class phpsvnclient {
         }
     }
 
+    /**
+     * Function for the recursive removal of directories.
+     * @param type $path The path to the directory to be deleted.
+     * @return type Returns the status of a function or function rmdir unlink.
+     */
     function removeDirs($path) {
         if (is_dir($path)) {
             $entries = scandir($path);
@@ -159,6 +184,10 @@ class phpsvnclient {
         }
     }
 
+    /**
+     * Function for logging.
+     * @param type $contents The line for entry in the log file.
+     */
     function logging($contents) {
         $hOut = fopen(LOG_FILE, 'a+');
         fwrite($hOut, $contents);
@@ -174,8 +203,11 @@ class phpsvnclient {
      * 
      * @param string $folder Defaults to disk root
      * @param string $outPath Defaults to current folder (.)
+     * @param boolean $checkFiles Whether it is necessary to check the received 
+     * files in the sizes. Can be useful in case often files are accepted 
+     * with an error.
      */
-    public function checkOut($folder = '/', $outPath = '.') {
+    public function checkOut($folder = '/', $outPath = '.', $checkFiles = false) {
         while ($outPath[strlen($outPath) - 1] == '/' && strlen($outPath) > 1) {
             $outPath = substr($outPath, 0, -1);
         }
@@ -195,15 +227,27 @@ class phpsvnclient {
                 flush();
                 mkdir($createPath);
             } elseif ($file['type'] == 'file') {
-                $contents = $this->getFile($path);
 
-                $outText = "<font color='blue'>Getting file: </font> ";
-                if (strlen($contents) < 1) {
-                    $outText.= "<font color='red'> " . $createPath . " with 0 size </font> ";
-                } else {
-                    $outText.= $createPath;
+                for ($x = 0; $x < 2; $x++) {
+                    $contents = $this->getFile($path);
+                    $outText .= "<font color='blue'>Getting file: </font> " . $path;
+                    $outText .= " <br />\r\n";
+                    if ($checkFiles) {
+                        $fileSize = $this->getFileSize($path);
+                        $outText.= " The size of the received file: " . strlen($contents) .
+                                " File size in a repository: " . $fileSize;
+                        $outText.= " <br />\r\n";
+
+                        if (strlen($contents) != $fileSize) {
+                            $outText.= "<font color='red'> Error receiving file: " . $createPath . "</font> --- " . $x;
+                        } else {
+                            break;
+                        }
+                        $outText.= " <br />\r\n";
+                    } else {
+                        break;
+                    }
                 }
-                $outText.= " <br />\r\n";
                 echo $outText;
                 $this->logging($outText);
                 flush();
@@ -222,8 +266,11 @@ class phpsvnclient {
      * Function to easily create and update a working copy of the repository.
      * @param type $folder Folder in remote repository
      * @param type $outPath Folder for storing files
+     * @param boolean $checkFiles Whether it is necessary to check the received 
+     * files in the sizes. Can be useful in case often files are accepted 
+     * with an error.
      */
-    public function createOrUpdateWorkingCopy($folder = '/', $outPath = '.') {
+    public function createOrUpdateWorkingCopy($folder = '/', $outPath = '.', $checkFiles = false) {
 
         if (!file_exists($outPath . '/.svn/entries')) {
             //Create a directory for storing system information for further updates.
@@ -235,7 +282,7 @@ class phpsvnclient {
             echo "Current status: <font color='blue'>Starting checkout...</font><br /> \r\n";
             $this->logging("Current status: <font color='blue'>Starting checkout...</font><br /> \r\n");
             flush();
-            $this->checkOut($folder, $outPath);
+            $this->checkOut($folder, $outPath, $checkFiles);
         } else {
             //Obtain the number of current version number of the local copy.
             $hOut = fopen($outPath . '/.svn/entries', 'r');
@@ -320,7 +367,13 @@ class phpsvnclient {
         }
     }
 
-    public function diffVersions($path = '', $revFrom=0, $revTo=0) {
+    /**
+     * Function to view the changes between revisions of the specified object.
+     * @param type $path The path to the object (file or directory).
+     * @param type $revFrom Initial revision.
+     * @param type $revTo The final revision.
+     */
+    public function diffVersions($path = '', $revFrom = 0, $revTo = 0) {
 
         require_once 'ext/Diff/Diff.php';
         require_once 'ext/Diff/Renderer.php';
@@ -355,8 +408,6 @@ class phpsvnclient {
                         $renderer = new Text_Diff_Renderer_unified();
                         $result = $renderer->render($diff);
                         if (strlen($result) > 1) {
-//			    echo " \r\n <br />" . $file;
-//			    echo " - " . $mime_type . " \r\n <br /> ";
                             echo "Index: " . $file . " \r\n";
                             echo "===================================================================" . " \r\n";
                             echo "--- " . $file . "	(revision " . $revFrom . ")" . " \r\n";
@@ -389,8 +440,6 @@ class phpsvnclient {
                         $renderer = new Text_Diff_Renderer_unified();
                         $result = $renderer->render($diff);
                         if (strlen($result) > 1) {
-//			    echo " \r\n <br />" . $file;
-//			    echo " - " . $mime_type . " \r\n <br /> ";
                             echo "Index: " . $file . " \r\n";
                             echo "===================================================================" . " \r\n";
                             echo "--- " . $file . "	(revision " . $revFrom . ")" . " \r\n";
@@ -412,7 +461,7 @@ class phpsvnclient {
      *  @param integer $version Repository version, -1 means actual
      *  @return array SVN data dump.
      */
-    public function rawDirectoryDump($folder='/', $version=-1) {
+    public function rawDirectoryDump($folder = '/', $version = -1) {
 
         if ($version == -1 || $version > $this->actVersion) {
             $version = $this->actVersion;
@@ -439,7 +488,7 @@ class phpsvnclient {
      *  @param integer $version Repository version, -1 means actual
      *  @return array List of files.	 
      */
-    public function getDirectoryFiles($folder='/', $version=-1) {
+    public function getDirectoryFiles($folder = '/', $version = -1) {
         if ($arrOutput = $this->rawDirectoryDump($folder, $version)) {
             $files = array();
             foreach ($arrOutput['children'] as $key => $value) {
@@ -466,7 +515,7 @@ class phpsvnclient {
      *
      *  @return array List of files and directories.
      */
-    public function getDirectoryTree($folder='/', $version=-1, $recursive=true) {
+    public function getDirectoryTree($folder = '/', $version = -1, $recursive = true) {
         $directoryTree = array();
 
         if (!($arrOutput = $this->getDirectoryFiles($folder, $version)))
@@ -503,7 +552,7 @@ class phpsvnclient {
      *  @return	string	File content and information, false on error, or if a
      *  				directory is requested
      */
-    public function getFile($file, $version=-1) {
+    public function getFile($file, $version = -1) {
         if ($version == -1 || $version > $this->actVersion) {
             $version = $this->actVersion;
         }
@@ -534,7 +583,7 @@ class phpsvnclient {
      *  @param integer $vend End Version
      *  @return Array Respository Logs
      */
-    public function getRepositoryLogs($path="/", $vini=0, $vend=-1) {
+    public function getRepositoryLogs($path = "/", $vini = 0, $vend = -1) {
         return $this->getFileLogs($path, $vini, $vend);
     }
 
@@ -549,7 +598,7 @@ class phpsvnclient {
      *  @param integer $vend End Version
      *  @return array Respository Logs
      */
-    public function getFileLogs($file, $vini=0, $vend=-1) {
+    public function getFileLogs($file, $vini = 0, $vend = -1) {
         $fileLogs = array();
 
         if ($vend == -1 || $vend > $this->actVersion)
@@ -604,7 +653,7 @@ class phpsvnclient {
         return $fileLogs;
     }
 
-    public function getLogsForUpdate($file, $vini=0, $vend=-1, $checkvend=true) {
+    public function getLogsForUpdate($file, $vini = 0, $vend = -1, $checkvend = true) {
         $fileLogs = array();
 
         if (($vend == -1 || $vend > $this->actVersion) && $checkvend) {
@@ -627,13 +676,6 @@ class phpsvnclient {
         $args['Headers']['Content-Length'] = strlen($args['Body']);
         $args['Headers']['Depth'] = 1;
 
-//	print_r($args);
-//        echo "\r\n <br />";
-//	print_r($args);
-//        echo "\r\n <br />";
-//	print_r($headers);
-//        echo "\r\n <br />";
-//	print_r($body);
         if (!$this->Request($args, $headers, $body)) {
             echo "ERROR in request";
             return false;
@@ -641,7 +683,6 @@ class phpsvnclient {
 
         $xml2Array = new xml2Array();
         $arrOutput = $xml2Array->xmlParse($body);
-        //print_r($body);
 
         $array = array();
         foreach ($arrOutput['children'] as $value) {
@@ -664,9 +705,6 @@ class phpsvnclient {
         $dirsDelete = "";
 
         foreach ($array['objects'] as $objects) {
-//            echo "\r\n";
-//            print_r($objects);
-//            echo "************************************************\r\n";
             if ($objects['type'] == "file") {
                 if ($objects['action'] == "S:ADDED-PATH" || $objects['action'] == "S:MODIFIED-PATH") {
                     $file = $objects['object_name'] . "/*+++*/";
@@ -712,24 +750,15 @@ class phpsvnclient {
                 }
             }
         }
-//        echo $files . "\r\n";
-//        echo $filesDelete . "\r\n";
-//        echo $dirs . "\r\n";
-//        echo $dirsDelete . "\r\n";
         $files = explode("/*+++*/", $files);
         $filesDelete = explode("/*+++*/", $filesDelete);
         $dirs = explode("/*+++*/", $dirs);
         $dirsDelete = explode("/*+++*/", $dirsDelete);
-//        print_r($files);
-//        print_r($filesDelete);
-//        print_r($dirs);
-//        print_r($dirsDelete);
         $out = array();
         $out['files'] = $files;
         $out['filesDelete'] = $filesDelete;
         $out['dirs'] = $dirs;
         $out['dirsDelete'] = $dirsDelete;
-        //print_r($out);
         return $out;
     }
 
@@ -748,6 +777,13 @@ class phpsvnclient {
         $args['Body'] = PHPSVN_VERSION_REQUEST;
         $args['Headers']['Content-Length'] = strlen(PHPSVN_NORMAL_REQUEST);
         $args['Headers']['Depth'] = 0;
+
+        //        echo $vini."\r\n";
+//        echo $vend."\r\n";
+        echo "Args: \r\n";
+        print_r($args);
+        echo "Headers: \r\n";
+        print_r($tmp);
 
         if (!$this->Request($args, $tmp, $body)) {
             return $this->_repVersion;
@@ -795,6 +831,8 @@ class phpsvnclient {
      */
     public function setRepository($url) {
         $this->_url = $url;
+        $this->_repVersion = 0;
+        $this->actVersion = $this->getVersion();
     }
 
     /**
@@ -845,8 +883,8 @@ class phpsvnclient {
                 case 'D:HREF':
                     $var = 'type';
                     break;
-                case 'LP1:VERSION-NAME':
-                    $var = 'version';
+				case 'LP1:VERSION-NAME':
+					$var = 'version';
                     break;
                 case 'LP1:GETLASTMODIFIED':
                     $var = 'last-mod';
@@ -960,15 +998,23 @@ class phpsvnclient {
         return preg_replace("/((^:)\/\/)/", "//", $url);
     }
 
-    function exec_after_completition() {
+    /**
+     * Private function for executing external script.
+     */
+    private function exec_after_completition() {
         require_once $this->path_exec_after_completition;
     }
 
+    /**
+     * Function to specify a script that should be executed 
+     * after the checkout or update a local repository.
+     * @param type $path_to_file - Path to file (script) for execution
+     */
     function set_job_for_exec_after_completition($path_to_file) {
         $this->path_exec_after_completition = $path_to_file;
     }
 
-    function get_mime_array() {
+    private function get_mime_array() {
         $regex = "/([\w\+\-\.\/]+)\t+([\w\s]+)/i";
         $lines = file("ext/mime/mime.types", FILE_IGNORE_NEW_LINES);
         foreach ($lines as $line) {
@@ -984,7 +1030,7 @@ class phpsvnclient {
         return ($mimeArray);
     }
 
-    function explodeX($delimiters, $string) {
+    private function explodeX($delimiters, $string) {
         $return_array = Array($string); // The array to return
         $d_count = 0;
         while (isset($delimiters[$d_count])) { // Loop to loop through all delimiters
@@ -999,6 +1045,42 @@ class phpsvnclient {
             $d_count++;
         }
         return $return_array; // Return the exploded elements
+    }
+
+    public function getFileSize($file = '/', $version = -1) {
+
+        if ($version == -1 || $version > $this->actVersion) {
+            $version = $this->actVersion;
+        }
+        $url = $this->cleanURL($this->_url . "/!svn/bc/" . $version . "/" . $file . "/");
+        $this->initQuery($args, "PROPFIND", $url);
+        $args['Body'] = PHPSVN_GET_FILE_SIZE;
+        $args['Headers']['Content-Length'] = strlen(PHPSVN_GET_FILE_SIZE);
+
+        if (!$this->Request($args, $headers, $body)) {
+            return false;
+        }
+        $xml2Array = new xml2Array();
+        $arrOutput = $xml2Array->xmlParse($body);
+
+        if ($arrOutput) {
+            $files = array();
+            foreach ($arrOutput['children'] as $key => $value) {
+                array_walk_recursive($value, array($this, 'get_file_size_resursively'));
+            }
+            return $this->file_size;
+        }
+    }
+
+    private function get_file_size_resursively($item, $key) {
+        if ($key == 'name') {
+            if ($item == 'LP1:GETCONTENTLENGTH') {
+                $this->file_size_founded = true;
+            }
+        } elseif (($key == 'tagData') && $this->file_size_founded) {
+            $this->file_size = $item;
+            $this->file_size_founded = false;
+        }
     }
 
 }

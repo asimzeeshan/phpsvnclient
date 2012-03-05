@@ -1,5 +1,16 @@
+Modified by Arthur Khusnutdinov (forpdfsending@gmail.com), August 2011
+   - Fix for Issue 17: Version number not reset when changing repository URL
+   - Realized the function getting the file size. It may be useful at the time 
+ of the file - sometimes the resulting file size is
+ 0 bytes - need to check the received file size to its size, obtained from the
+ repository.
+   - The logic of check of the size of the received file with the size of that 
+ in a repository is implemented. If the sizes of files differ, 2 more additional
+ attempts to download a file are undertaken. (Issue 15)
+
 Modified by Arthur Khusnutdinov (forpdfsending@gmail.com), July-August 2011
-   - Implemented new functionality to form a diff between revisions in the repository
+   - Implemented new functionality to form a diff between revisions 
+ in the repository
    - Code cleanup
    - Revision history moved from the phpsvnclient.php to the file ChangeLog.txt
 
